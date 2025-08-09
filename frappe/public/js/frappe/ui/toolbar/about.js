@@ -5,7 +5,7 @@ frappe.ui.misc.about = function () {
 		return;
 	}
 
-	const dialog = new frappe.ui.Dialog({ title: __("Frappe Framework") });
+	const dialog = new frappe.ui.Dialog({ title: __("Forty Framework") });
 
 	$(dialog.body).html(
 		`<div>
