@@ -215,7 +215,7 @@
 .list-row-head {
 	@extend .list-row;
 	cursor: default;
-	background: linear-gradient(to right, var(--subtle-fg), rgba(var(--subtle-fg), 0.95));
+	background-color: var(--subtle-fg);
 	border-radius: var(--border-radius);
 	height: 55px; // Increased header height
 	font-weight: 600;
@@ -239,17 +239,17 @@
 	}
 	
 	.level-right {
-		background: linear-gradient(to right, rgba(var(--subtle-fg), 0.95), var(--subtle-fg));
+		background-color: var(--subtle-fg);
 		border-radius: var(--border-radius);
 		height: 55px;
 		box-shadow: none;
 		&:hover {
-			background: linear-gradient(to right, rgba(var(--subtle-fg), 0.95), var(--subtle-fg));
+			background-color: var(--subtle-fg);
 		}
 	}
 	
 	&:hover .level-right {
-		background: linear-gradient(to right, rgba(var(--subtle-fg), 0.95), var(--subtle-fg));
+		background-color: var(--subtle-fg);
 	}
 	
 	// Never apply hover transform to header
@@ -433,7 +433,7 @@ input.list-header-checkbox {
 	align-items: center;
 	cursor: pointer;
 	padding-left: 20px;
-	min-height: 60px; // Increased height
+	min-height: 45px; // Adjusted height
 	transition: all 0.3s ease;
 
 	@include get_textstyle("base", "regular");
@@ -445,7 +445,7 @@ input.list-header-checkbox {
 	}
 
 	&--head {
-		background: linear-gradient(to bottom, var(--highlight-color), rgba(var(--highlight-color), 0.8));
+		background-color: var(--highlight-color);
 		cursor: auto;
 		font-weight: 600;
 		min-height: 50px;
