@@ -924,7 +924,6 @@ body {
 	@media (min-width: map-get($grid-breakpoints, "lg")) {
 		.layout-main {
 			height: calc(100vh - var(--navbar-height) - var(--page-head-height) - 5px);
-			max-width: var(--page-max-width);
 			margin: auto;
 
 			.layout-main-section {
