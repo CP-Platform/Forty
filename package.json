@@ -1,5 +1,6 @@
 {
   "name": "frappe-framework",
+  "label":"Forty Framework",
   "scripts": {
     "build": "node esbuild",
     "production": "node esbuild --production",
