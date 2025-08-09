@@ -2,16 +2,16 @@
 $color_list: gray, blue, green, red, orange, amber, yellow, cyan, teal, violet, pink, purple,
 	white-overlay, black-overlay;
 
-$gray-50: #f8f8f8;
-$gray-100: #f3f3f3;
-$gray-200: #ededed;
-$gray-300: #e2e2e2;
-$gray-400: #c7c7c7;
-$gray-500: #999999;
-$gray-600: #7c7c7c;
-$gray-700: #525252;
-$gray-800: #383838;
-$gray-900: #171717;
+$gray-50:  #f6fbff;  // ultra light - page background, cards
+$gray-100: #eaf6fc;  // light - inner card background, light borders
+$gray-200: #d6ecf7;  // soft border, dividers
+$gray-300: #b8d7e8;  // subtle inputs, secondary background
+$gray-400: #95bed8;  // input borders, disabled text
+$gray-500: #6ba4c5;  // normal UI text, labels
+$gray-600: #417ea4;  // strong UI text, primary buttons
+$gray-700: #2e6a8d;  // hover, selected states
+$gray-800: #195877;  // titles, headers
+$gray-900: #025074;  // dark base, emphasis element
 
 $primary: $gray-900;
 $primary-light: lighten($primary, 80%) !default;
@@ -25,16 +25,16 @@ $light-yellow: #fef4e2;
 	--neutral: var(--neutral-white);
 	--invert-neutral: var(--neutral-black);
 
-	--gray-50: #f8f8f8;
-	--gray-100: #f3f3f3;
-	--gray-200: #ededed;
-	--gray-300: #e2e2e2;
-	--gray-400: #c7c7c7;
-	--gray-500: #999999;
-	--gray-600: #7c7c7c;
-	--gray-700: #525252;
-	--gray-800: #383838;
-	--gray-900: #171717;
+	--gray-50: #f6fbff;
+	--gray-100: #eaf6fc;
+	--gray-200: #d6ecf7;
+	--gray-300: #b8d7e8;
+	--gray-400: #95bed8;
+	--gray-500: #6ba4c5;
+	--gray-600: #417ea4;
+	--gray-700: #2e6a8d;
+	--gray-800: #195877;
+	--gray-900: #025074;
 
 	--blue-50: #f7fbfd;
 	--blue-100: #edf6fd;
