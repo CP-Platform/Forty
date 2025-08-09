@@ -364,9 +364,13 @@ input.list-header-checkbox {
 	--checkbox-right-margin: 0;
 	background-color: var(--card-bg);
 	z-index: 1;
-	width: 18px;
-	height: 18px;
+	width: 18px !important;
+	height: 18px !important;
 	cursor: pointer;
+	min-width: 18px;
+	min-height: 18px;
+	flex-shrink: 0; // Prevent checkbox from shrinking
+	aspect-ratio: 1 / 1; // Force square aspect ratio
 
 	&::after {
 		// Extend the checkbox's clickable area
@@ -457,8 +461,10 @@ input.list-header-checkbox {
 	input[type="checkbox"] {
 		margin: 0;
 		margin-right: 8px;
-		width: 16px;
-		height: 16px;
+		width: 18px !important;
+		height: 18px !important;
+		min-width: 18px;
+		min-height: 18px;
 	}
 
 	.liked-by,
@@ -655,8 +661,10 @@ input.list-header-checkbox {
 			overflow-x: hidden;
 			input.list-row-checkbox,
 			input.list-header-checkbox {
-				width: 16px !important;
-				height: 16px;
+				width: 18px !important;
+				height: 18px !important;
+				min-width: 18px;
+				min-height: 18px;
 			}
 		}
 		.list-row-container:not(:has(.list-row-head)) {
