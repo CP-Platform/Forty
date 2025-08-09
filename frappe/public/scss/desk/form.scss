@@ -443,8 +443,6 @@
 	// for 1, 2 column layouts, implement horizontal, else vertical
 	.col-sm-12 > form > .frappe-control > .horizontal,
 	.col-sm-6 > form > .frappe-control > .horizontal {
-		display: flex;
-		justify-content: space-between;
 		vertical-align: middle;
 
 		.clearfix {
