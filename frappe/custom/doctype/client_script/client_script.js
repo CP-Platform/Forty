@@ -1,5 +1,547 @@
 // Copyright (c) 2016, Frappe Technologies and contributors
 // For license information, please see license.txt
+// Enhanced Client Script with checking functionality
+
+
+
+function updateDoctypeList(dialog, module) {
+    dialog.fields_dict.doctypes_html.$wrapper.html(
+        '<div class="text-muted"><i class="fa fa-spinner fa-spin"></i> Loading doctypes...</div>'
+    );
+    
+    frappe.call({
+        method: 'frappe.client.get_list',
+        args: {
+            doctype: 'DocType',
+            fields: ['name', 'module', 'custom'],
+            filters: {
+                module: module,
+                istable: 0
+            },
+            order_by: 'name',
+            limit: 500
+        },
+        callback: function(r) {
+            if (r.message && r.message.length > 0) {
+                // Store doctypes in dialog for later use
+                dialog.doctypes = r.message;
+                
+                // Check which ones already have banner
+                let doctype_names = r.message.map(dt => dt.name);
+                checkExistingBannersForDoctypes(doctype_names, dialog, function(existing_data) {
+                    renderDoctypeCheckboxes(dialog, r.message, existing_data);
+                });
+            } else {
+                dialog.fields_dict.doctypes_html.$wrapper.html(
+                    '<div class="text-muted">No doctypes found for this module.</div>'
+                );
+            }
+        }
+    });
+}
+
+function checkExistingBannersForDoctypes(doctypes, dialog, callback) {
+    frappe.call({
+        method: 'frappe.utils.doctype_files.check_existing_banner_code',
+        args: {
+            doctypes: doctypes
+        },
+        callback: function(r) {
+            if (r.message) {
+                callback(r.message);
+            } else {
+                callback({});
+            }
+        },
+        error: function() {
+            // If method doesn't exist, continue without checking
+            callback({});
+        }
+    });
+}
+
+function renderDoctypeCheckboxes(dialog, doctypes, existing_data = {}) {
+    let html = '<div class="doctype-checkbox-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #d1d8dd; border-radius: 4px; padding: 10px;">';
+    
+    let stats = {
+        total: 0,
+        with_banner: 0,
+        without_banner: 0
+    };
+    
+    doctypes.forEach(function(dt) {
+        if (['DocType', 'Module Def', 'Print Format', 'Page', 'Report'].includes(dt.name)) {
+            return;
+        }
+        
+        stats.total++;
+        let existing = existing_data[dt.name] || {};
+        let has_banner = existing.has_any || false;
+        
+        if (has_banner) {
+            stats.with_banner++;
+        } else {
+            stats.without_banner++;
+        }
+        
+        let status_icon = '';
+        let status_text = '';
+        
+        if (existing.has_list_banner && existing.has_form_banner) {
+            status_icon = '<i class="fa fa-check-circle text-success" title="Has both list and form banners"></i>';
+            status_text = ' <small class="text-success">(Complete)</small>';
+        } else if (existing.has_list_banner || existing.has_form_banner) {
+            status_icon = '<i class="fa fa-exclamation-circle text-warning" title="Has partial banner"></i>';
+            status_text = ' <small class="text-warning">(Partial)</small>';
+        } else {
+            status_icon = '<i class="fa fa-circle-o text-muted" title="No banner"></i>';
+            status_text = '';
+        }
+        
+        html += `
+            <div class="checkbox doctype-item" style="margin: 5px 0;" data-has-banner="${has_banner}">
+                <label style="font-weight: normal; margin-bottom: 0; cursor: pointer; display: flex; align-items: center;">
+                    <input type="checkbox" class="doctype-check" data-doctype="${dt.name}" style="margin-right: 8px;">
+                    <span style="flex: 1;">${dt.name}</span>
+                    ${status_icon}
+                    ${status_text}
+                    ${dt.custom ? '<span class="text-warning" style="font-size: 11px; margin-left: 5px;">(Custom)</span>' : ''}
+                </label>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    html += `
+        <div class="stats-container" style="margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+            <div class="row">
+                <div class="col-xs-4 text-center">
+                    <div style="font-size: 24px; font-weight: bold;">${stats.total}</div>
+                    <div class="text-muted">Total</div>
+                </div>
+                <div class="col-xs-4 text-center">
+                    <div style="font-size: 24px; font-weight: bold; color: #28a745;">${stats.with_banner}</div>
+                    <div class="text-muted">With Banner</div>
+                </div>
+                <div class="col-xs-4 text-center">
+                    <div style="font-size: 24px; font-weight: bold; color: #dc3545;">${stats.without_banner}</div>
+                    <div class="text-muted">Without Banner</div>
+                </div>
+            </div>
+        </div>
+        <div class="selected-count text-muted" style="margin-top: 10px; font-weight: bold;">0 doctypes selected</div>
+    `;
+    
+    dialog.fields_dict.doctypes_html.$wrapper.html(html);
+    
+    // Store existing data for later use
+    dialog.existing_banner_data = existing_data;
+    
+    // Add change event
+    dialog.fields_dict.doctypes_html.$wrapper.find('.doctype-check').on('change', function() {
+        updateSelectedCount(dialog);
+    });
+}
+
+function filterDoctypes(dialog) {
+    let filter = (dialog.get_value('doctype_filter') || '').toLowerCase();
+    let hide_existing = dialog.get_value('hide_existing');
+    let items = dialog.fields_dict.doctypes_html.$wrapper.find('.doctype-item');
+    
+    items.each(function() {
+        let $item = $(this);
+        let doctypeName = $item.find('.doctype-check').data('doctype').toLowerCase();
+        let has_banner = $item.data('has-banner') === true || $item.data('has-banner') === 'true';
+        
+        let show = true;
+        
+        // Text filter
+        if (filter && !doctypeName.includes(filter)) {
+            show = false;
+        }
+        
+        // Hide existing filter
+        if (hide_existing && has_banner) {
+            show = false;
+        }
+        
+        if (show) {
+            $item.show();
+        } else {
+            $item.hide();
+        }
+    });
+    
+    updateSelectedCount(dialog);
+}
+
+function checkExistingBanners(dialog) {
+    let selected = [];
+    dialog.fields_dict.doctypes_html.$wrapper.find('.doctype-check:checked').each(function() {
+        selected.push($(this).data('doctype'));
+    });
+    
+    if (selected.length === 0) {
+        frappe.msgprint('Please select doctypes to check');
+        return;
+    }
+    
+    frappe.call({
+        method: 'frappe.utils.doctype_files.check_existing_banner_code',
+        args: {
+            doctypes: selected
+        },
+        callback: function(r) {
+            if (r.message) {
+                let report = '<h5>Banner Status Report</h5><ul>';
+                
+                selected.forEach(doctype => {
+                    let status = r.message[doctype];
+                    if (status) {
+                        let icon = status.has_any ? '✅' : '❌';
+                        report += `<li><b>${doctype}</b>: ${icon} `;
+                        
+                        if (status.has_list_banner && status.has_form_banner) {
+                            report += 'Has both list and form banners';
+                        } else if (status.has_list_banner) {
+                            report += 'Has list banner only';
+                        } else if (status.has_form_banner) {
+                            report += 'Has form banner only';
+                        } else {
+                            report += 'No banner code found';
+                        }
+                        
+                        report += '</li>';
+                    }
+                });
+                
+                report += '</ul>';
+                
+                frappe.msgprint({
+                    title: 'Existing Banner Check',
+                    message: report,
+                    wide: true
+                });
+            }
+        }
+    });
+}
+
+function createBannerFooterScripts(values, dialog) {
+    let selectedDoctypes = [];
+    dialog.fields_dict.doctypes_html.$wrapper.find('.doctype-check:checked').each(function() {
+        selectedDoctypes.push($(this).data('doctype'));
+    });
+    
+    if (selectedDoctypes.length === 0) {
+        frappe.msgprint({
+            title: 'No Selection',
+            message: 'Please select at least one doctype',
+            indicator: 'orange'
+        });
+        return;
+    }
+    
+    // Check which ones already have banners
+    let existing_banners = [];
+    let new_banners = [];
+    
+    selectedDoctypes.forEach(doctype => {
+        if (dialog.existing_banner_data && dialog.existing_banner_data[doctype] && dialog.existing_banner_data[doctype].has_any) {
+            existing_banners.push(doctype);
+        } else {
+            new_banners.push(doctype);
+        }
+    });
+    
+    let confirm_message = `<h4>Create JavaScript Files</h4>`;
+    
+    if (new_banners.length > 0) {
+        confirm_message += `<p>Will create new banner for <b>${new_banners.length}</b> doctypes.</p>`;
+    }
+    
+    if (existing_banners.length > 0 && !values.force_overwrite) {
+        confirm_message += `<p class="text-warning">⚠️ Will skip <b>${existing_banners.length}</b> doctypes that already have banners:</p>`;
+        confirm_message += `<ul style="max-height: 100px; overflow-y: auto;">`;
+        existing_banners.forEach(dt => {
+            confirm_message += `<li>${dt}</li>`;
+        });
+        confirm_message += `</ul>`;
+        confirm_message += `<p class="text-muted">Enable "Force Overwrite" to update these.</p>`;
+    } else if (existing_banners.length > 0 && values.force_overwrite) {
+        confirm_message += `<p class="text-danger">⚠️ Will OVERWRITE <b>${existing_banners.length}</b> doctypes that already have banners!</p>`;
+    }
+    
+    confirm_message += `<p><b>Continue?</b></p>`;
+    
+    // Get gradient colors
+    const gradients = {
+        'Blue': 'linear-gradient(90deg, #2d6eaf, #51a8f9)',
+        'Purple': 'linear-gradient(90deg, #667eea, #764ba2)',
+        'Green': 'linear-gradient(90deg, #11998e, #38ef7d)',
+        'Orange': 'linear-gradient(90deg, #f2994a, #f2c94c)',
+        'Dark': 'linear-gradient(90deg, #232526, #414345)'
+    };
+    
+    const config = {
+        title: values.banner_title,
+        icon: values.banner_icon,
+        gradient: gradients[values.banner_gradient] || gradients['Blue'],
+        logo_path: values.logo_path,
+        company_name: values.company_name
+    };
+    
+    frappe.confirm(
+        confirm_message,
+        () => {
+            frappe.call({
+                method: 'frappe.utils.doctype_files.create_doctype_js_files',
+                args: {
+                    doctypes: selectedDoctypes,
+                    banner_config: config,
+                    force_overwrite: values.force_overwrite || false
+                },
+                freeze: true,
+                freeze_message: `Creating JavaScript files for ${selectedDoctypes.length} doctypes...`,
+                callback: function(r) {
+                    if (r.message) {
+                        dialog.hide();
+                        
+                        // Process results
+                        let created = 0;
+                        let skipped = 0;
+                        let errors = 0;
+                        
+                        let details = '<h5>Results:</h5><ul>';
+                        
+                        r.message.forEach(item => {
+                            if (item.status === 'success') {
+                                created++;
+                                details += `<li>✅ <b>${item.doctype}</b>: Created/Updated`;
+                                if (item.updated_list && item.updated_form) {
+                                    details += ' (both views)';
+                                } else if (item.updated_list) {
+                                    details += ' (list view only)';
+                                } else if (item.updated_form) {
+                                    details += ' (form view only)';
+                                }
+                                details += '</li>';
+                            } else if (item.status === 'skipped') {
+                                skipped++;
+                                details += `<li>⏭️ <b>${item.doctype}</b>: Skipped (already has banner)</li>`;
+                            } else {
+                                errors++;
+                                details += `<li>❌ <b>${item.doctype}</b>: Error - ${item.error}</li>`;
+                            }
+                        });
+                        
+                        details += '</ul>';
+                        
+                        let summary = `Created: ${created}, Skipped: ${skipped}, Errors: ${errors}`;
+                        
+                        frappe.msgprint({
+                            title: 'JavaScript Files Created',
+                            message: `<p><b>Summary:</b> ${summary}</p>${details}`,
+                            indicator: errors > 0 ? 'orange' : 'green',
+                            wide: true
+                        });
+                        
+                        if (created > 0) {
+                            setTimeout(() => {
+                                frappe.confirm(
+                                    'Files created successfully. Run "bench build" and reload to see changes. Reload now?',
+                                    () => {
+                                        window.location.reload();
+                                    }
+                                );
+                            }, 2000);
+                        }
+                    }
+                }
+            });
+        }
+    );
+}
+
+function toggleAllDoctypes(dialog) {
+    let selectAll = dialog.get_value('select_all');
+    let visibleCheckboxes = dialog.fields_dict.doctypes_html.$wrapper.find('.doctype-item:visible .doctype-check');
+    visibleCheckboxes.prop('checked', selectAll);
+    updateSelectedCount(dialog);
+}
+
+function updateSelectedCount(dialog) {
+    let total = dialog.fields_dict.doctypes_html.$wrapper.find('.doctype-check').length;
+    let checked = dialog.fields_dict.doctypes_html.$wrapper.find('.doctype-check:checked').length;
+    let visible = dialog.fields_dict.doctypes_html.$wrapper.find('.doctype-item:visible').length;
+    
+    let countText = `${checked} doctypes selected`;
+    if (visible < total) {
+        countText += ` (${visible} visible out of ${total} total)`;
+    }
+    
+    dialog.fields_dict.doctypes_html.$wrapper.find('.selected-count').text(countText);
+}
+
+
+
+frappe.ui.form.on("Client Script", {
+	setup(frm) {
+		frm.get_field("sample").html(SAMPLE_HTML);
+	},
+	refresh(frm) {
+		if (frm.doc.dt && frm.doc.script) {
+			frm.add_custom_button(__("Go to {0}", [frm.doc.dt]), () =>
+				frappe.set_route("List", frm.doc.dt, "List")
+			);
+		}
+
+		if (frm.doc.view == "Form") {
+			frm.add_custom_button(__("Add script for Child Table"), () => {
+				frappe.model.with_doctype(frm.doc.dt, () => {
+					const child_tables = frappe.meta
+						.get_docfields(frm.doc.dt, null, {
+							fieldtype: "Table",
+						})
+						.map((df) => df.options);
+
+					const d = new frappe.ui.Dialog({
+						title: __("Select Child Table"),
+						fields: [
+							{
+								label: __("Select Child Table"),
+								fieldtype: "Link",
+								fieldname: "cdt",
+								options: "DocType",
+								get_query: () => {
+									return {
+										filters: {
+											istable: 1,
+											name: ["in", child_tables],
+										},
+									};
+								},
+							},
+						],
+						primary_action: ({ cdt }) => {
+							cdt = d.get_field("cdt").value;
+							frm.events.add_script_for_doctype(frm, cdt);
+							d.hide();
+						},
+					});
+
+					d.show();
+				});
+			});
+
+			if (!frm.is_new()) {
+				frm.add_custom_button(__("Compare Versions"), () => {
+					new frappe.ui.DiffView("Client Script", "script", frm.doc.name);
+				});
+			}
+		}
+
+		frm.set_query("dt", {
+			filters: {
+				istable: 0,
+			},
+		});
+	},
+
+	dt(frm) {
+		frm.toggle_display("view", !frappe.boot.single_types.includes(frm.doc.dt));
+
+		if (!frm.doc.script) {
+			frm.events.add_script_for_doctype(frm, frm.doc.dt);
+		}
+
+		if (frm.doc.script && !frm.doc.script.includes(frm.doc.dt)) {
+			frm.doc.script = "";
+			frm.events.add_script_for_doctype(frm, frm.doc.dt);
+		}
+	},
+
+	view(frm) {
+		let has_form_boilerplate = frm.doc.script.includes("frappe.ui.form.on");
+		if (frm.doc.view === "List" && has_form_boilerplate) {
+			frm.set_value("script", "");
+		}
+		if (frm.doc.view === "Form" && !has_form_boilerplate) {
+			frm.trigger("dt");
+		}
+	},
+
+	add_script_for_doctype(frm, doctype) {
+		if (!doctype) return;
+		let boilerplate = `
+frappe.ui.form.on('${doctype}', {
+	refresh(frm) {
+		// your code here
+	}
+})
+		`.trim();
+		let script = frm.doc.script || "";
+		if (script) {
+			script += "\n\n";
+		}
+		frm.set_value("script", script + boilerplate);
+	},
+});
+
+const SAMPLE_HTML = `<h3>Client Script Help</h3>
+<p>Client Scripts are executed only on the client-side (i.e. in Forms). Here are some examples to get you started</p>
+<pre><code>
+
+// fetch local_tax_no on selection of customer
+// cur_frm.add_fetch(link_field,  source_fieldname,  target_fieldname);
+cur_frm.add_fetch("customer",  "local_tax_no',  'local_tax_no');
+
+// additional validation on dates
+frappe.ui.form.on('Task',  'validate',  function(frm) {
+    if (frm.doc.from_date &lt; get_today()) {
+        msgprint('You can not select past date in From Date');
+        validated = false;
+    }
+});
+
+// make a field read-only after saving
+frappe.ui.form.on('Task',  {
+    refresh: function(frm) {
+        // use the __islocal value of doc,  to check if the doc is saved or not
+        frm.set_df_property('myfield',  'read_only',  frm.doc.__islocal ? 0 : 1);
+    }
+});
+
+// additional permission check
+frappe.ui.form.on('Task',  {
+    validate: function(frm) {
+        if(user=='user1@example.com' &amp;&amp; frm.doc.purpose!='Material Receipt') {
+            msgprint('You are only allowed Material Receipt');
+            validated = false;
+        }
+    }
+});
+
+// calculate sales incentive
+frappe.ui.form.on('Sales Invoice',  {
+    validate: function(frm) {
+        // calculate incentives for each person on the deal
+        total_incentive = 0
+        $.each(frm.doc.sales_team,  function(i,  d) {
+            // calculate incentive
+            var incentive_percent = 2;
+            if(frm.doc.base_grand_total &gt; 400) incentive_percent = 4;
+            // actual incentive
+            d.incentives = flt(frm.doc.base_grand_total) * incentive_percent / 100;
+            total_incentive += flt(d.incentives)
+        });
+        frm.doc.total_incentive = total_incentive;
+    }
+})
+
+</code></pre>`;
+
+
 
 frappe.ui.form.on('Client Script', {
     before_save(frm) {
@@ -1629,158 +2171,3 @@ function getQualityMessage(score) {
     if (score >= 40) return "Code needs improvement. Review suggestions carefully.";
     return "Code requires significant refactoring.";
 }
-frappe.ui.form.on("Client Script", {
-	setup(frm) {
-		frm.get_field("sample").html(SAMPLE_HTML);
-	},
-	refresh(frm) {
-		if (frm.doc.dt && frm.doc.script) {
-			frm.add_custom_button(__("Go to {0}", [frm.doc.dt]), () =>
-				frappe.set_route("List", frm.doc.dt, "List")
-			);
-		}
-
-		if (frm.doc.view == "Form") {
-			frm.add_custom_button(__("Add script for Child Table"), () => {
-				frappe.model.with_doctype(frm.doc.dt, () => {
-					const child_tables = frappe.meta
-						.get_docfields(frm.doc.dt, null, {
-							fieldtype: ["in", ["Table", "Table MultiSelect"]],
-						})
-						.map((df) => df.options);
-
-					const d = new frappe.ui.Dialog({
-						title: __("Select Child Table"),
-						fields: [
-							{
-								label: __("Select Child Table"),
-								fieldtype: "Link",
-								fieldname: "cdt",
-								options: "DocType",
-								get_query: () => {
-									return {
-										filters: {
-											istable: 1,
-											name: ["in", child_tables],
-										},
-									};
-								},
-							},
-						],
-						primary_action: ({ cdt }) => {
-							cdt = d.get_field("cdt").value;
-							frm.events.add_script_for_doctype(frm, cdt);
-							d.hide();
-						},
-					});
-
-					d.show();
-				});
-			});
-
-			if (!frm.is_new()) {
-				frm.add_custom_button(__("Compare Versions"), () => {
-					new frappe.ui.DiffView("Client Script", "script", frm.doc.name);
-				});
-			}
-		}
-
-		frm.set_query("dt", {
-			filters: {
-				istable: 0,
-			},
-		});
-	},
-
-	dt(frm) {
-		frm.toggle_display("view", !frappe.boot.single_types.includes(frm.doc.dt));
-
-		if (!frm.doc.script) {
-			frm.events.add_script_for_doctype(frm, frm.doc.dt);
-		}
-
-		if (frm.doc.script && !frm.doc.script.includes(frm.doc.dt)) {
-			frm.doc.script = "";
-			frm.events.add_script_for_doctype(frm, frm.doc.dt);
-		}
-	},
-
-	view(frm) {
-		let has_form_boilerplate = frm.doc.script.includes("frappe.ui.form.on");
-		if (frm.doc.view === "List" && has_form_boilerplate) {
-			frm.set_value("script", "");
-		}
-		if (frm.doc.view === "Form" && !has_form_boilerplate) {
-			frm.trigger("dt");
-		}
-	},
-
-	add_script_for_doctype(frm, doctype) {
-		if (!doctype) return;
-		let boilerplate = `
-frappe.ui.form.on('${doctype}', {
-	refresh(frm) {
-		// your code here
-	}
-})
-		`.trim();
-		let script = frm.doc.script || "";
-		if (script) {
-			script += "\n\n";
-		}
-		frm.set_value("script", script + boilerplate);
-	},
-});
-
-const SAMPLE_HTML = `<h3>Client Script Help</h3>
-<p>Client Scripts are executed only on the client-side (i.e. in Forms). Here are some examples to get you started</p>
-<pre><code>
-
-// fetch local_tax_no on selection of customer
-// cur_frm.add_fetch(link_field,  source_fieldname,  target_fieldname);
-cur_frm.add_fetch("customer",  "local_tax_no',  'local_tax_no');
-
-// additional validation on dates
-frappe.ui.form.on('Task',  'validate',  function(frm) {
-    if (frm.doc.from_date &lt; get_today()) {
-        msgprint('You can not select past date in From Date');
-        validated = false;
-    }
-});
-
-// make a field read-only after saving
-frappe.ui.form.on('Task',  {
-    refresh: function(frm) {
-        // use the __islocal value of doc,  to check if the doc is saved or not
-        frm.set_df_property('myfield',  'read_only',  frm.doc.__islocal ? 0 : 1);
-    }
-});
-
-// additional permission check
-frappe.ui.form.on('Task',  {
-    validate: function(frm) {
-        if(user=='user1@example.com' &amp;&amp; frm.doc.purpose!='Material Receipt') {
-            msgprint('You are only allowed Material Receipt');
-            validated = false;
-        }
-    }
-});
-
-// calculate sales incentive
-frappe.ui.form.on('Sales Invoice',  {
-    validate: function(frm) {
-        // calculate incentives for each person on the deal
-        total_incentive = 0
-        $.each(frm.doc.sales_team,  function(i,  d) {
-            // calculate incentive
-            var incentive_percent = 2;
-            if(frm.doc.base_grand_total &gt; 400) incentive_percent = 4;
-            // actual incentive
-            d.incentives = flt(frm.doc.base_grand_total) * incentive_percent / 100;
-            total_incentive += flt(d.incentives)
-        });
-        frm.doc.total_incentive = total_incentive;
-    }
-})
-
-</code></pre>`;
