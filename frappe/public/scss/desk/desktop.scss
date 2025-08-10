@@ -555,8 +555,8 @@ body {
   // Hover State
   &:hover {
     transform: translateY(-2px);
-    background: linear-gradient(135deg, var(--border-color, #2d6eaf) 0%, darken(#2d6eaf, 8%) 100%);
-    border-color: transparent;
+ background: linear-gradient(135deg, #ffffff 0%, #f8fbfd 100%);
+	  border-color: transparent;
     box-shadow: 
       0 8px 24px rgba(45, 110, 175, 0.25),
       0 0 0 1px rgba(255, 255, 255, 0.1) inset;
