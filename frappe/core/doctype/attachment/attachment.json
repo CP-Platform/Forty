@@ -1,0 +1,43 @@
+{
+  "doctype": "DocType",
+  "name": "Attachment",
+  "module": "Core",
+  "custom": 0,
+  "istable": 1,
+  "editable_grid": 1,
+  "track_changes": 0,
+  "track_seen": 0,
+  "engine": "InnoDB",
+  "field_order": [
+    "file_type",
+    "file_name",
+    "attach"
+  ],
+  "fields": [
+    {
+      "fieldname": "file_type",
+      "label": "File Type",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "file_name",
+      "label": "File Name",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "attach",
+      "label": "Attach",
+      "fieldtype": "Attach",
+      "in_list_view": 1,
+      "reqd": 0
+    }
+  ],
+  "permissions": [],
+  "actions": [],
+  "links": [],
+  "allow_rename": 1
+}
