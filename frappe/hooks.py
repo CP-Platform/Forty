@@ -16,6 +16,11 @@ app_email = "developers@frappe.io"
 before_install = "frappe.utils.install.before_install"
 after_install = "frappe.utils.install.after_install"
 
+
+app_include_js = "/assets/frappe/js/smart_analytics.js"
+
+
+
 page_js = {"setup-wizard": "public/js/frappe/setup_wizard.js"}
 
 # website
