@@ -81,6 +81,11 @@ frappe.ui.Page = class Page {
 		frappe.require(this.required_libs, callback);
 	}
 
+
+	
+
+
+
 add_main_section() {
 	// Render base page wrapper
 	$(frappe.render_template("page", {})).appendTo(this.wrapper);
@@ -119,57 +124,57 @@ add_main_section() {
 			this.wrapper.find(".layout-side-section").addClass("right");
 		}
 
-		// ===== Auto-collapse on load | طيّ الشريط الجانبي تلقائيًا عند التحميل =====
+		// ===== Auto-collapse on load =====
 		const $layout   = this.wrapper.find(".layout-main.layout-two-column");
 		const $sidebar  = this.wrapper.find(".layout-side-section");
 
-		// ابدأ مطويًا بدون أنيميشن ثم جاهز للفتح بانسيابية لاحقًا
 		$sidebar.slideUp(0).attr("data-collapsed", "1");
 		$layout.addClass("sidebar-collapsed");
 
-		// حقن CSS بسيط لتوسيع المساحة الرئيسية عند طيّ الشريط
-		// (في معظم ثيمات Frappe الـ flex كافي، لكن هذا يضمن العرض الكامل)
-		const styleId = "auto-collapse-sidebar-style";
+		// Inject CSS for floating virtual button
+		const styleId = "virtual-sidebar-button-style";
 		if (!document.getElementById(styleId)) {
 			$(`<style id="${styleId}">
 				.layout-two-column.sidebar-collapsed .layout-main-section-wrapper {
 					width: 100%;
 				}
-				/* اختياري: تقليل الحد الفاصل عندما يكون مطوي */
-				.layout-two-column.sidebar-collapsed .layout-main-section-wrapper {
-					border-left: none;
-				}
-				/* زر التبديل الصغير */
+				/* Floating Virtual Button Style */
 				.sidebar-toggle {
-					position: absolute;
-					top: 10px;
-					/* إذا كانت يمين: ضع الزر يسار قليلًا والعكس */
-					right: 10px;
-					z-index: 2;
+					position: fixed;
+					bottom: 20px;
+					right: 20px;
+					width: 50px;
+					height: 50px;
+					border-radius: 50%;
+					background-color: rgba(0, 123, 255, 0.85);
+					color: #fff;
+					border: none;
+					box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+					cursor: pointer;
+					z-index: 9999;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					transition: background-color 0.3s ease, transform 0.2s ease;
 				}
-				/* لو كانت الـ sidebar يسار، انقل الزر لليسار */
-				.layout-two-column:not(.sidebar-right) .sidebar-toggle { left: 10px; right: auto; }
-				/* اجعل الحاوية نسبية لتثبيت الزر */
-				.layout-main { position: relative; }
+				.sidebar-toggle:hover {
+					background-color: rgba(0, 123, 255, 1);
+					transform: scale(1.05);
+				}
+				.sidebar-toggle i {
+					font-size: 20px;
+				}
 			</style>`).appendTo(document.head);
 		}
 
-		// ضع class مساعد يوضح أن الشريط على اليمين (لأجل CSS أعلاه)
-		if (this.sidebar_position === "Right") {
-			$layout.addClass("sidebar-right");
-		}
-
-		// ===== (اختياري) زر تبديل فتح/إغلاق | Toggle button =====
-		// زر صغير أعلى الصفحة لفتح/طيّ الشريط الجانبي
+		// ===== Floating toggle button =====
 		const $toggleBtn = $(`
-			<button type="button" class="btn btn-default btn-xs sidebar-toggle"
-					title="${__('Toggle sidebar')}">
+			<button type="button" class="sidebar-toggle" title="${__('Toggle Sidebar')}">
 				<i class="octicon octicon-sidebar-collapse"></i>
-				<span class="hidden-xs">${__('⚙️')}</span>
 			</button>
-		`).appendTo(this.wrapper.find(".layout-main"));
+		`).appendTo("body"); // Append to body so it stays fixed
 
-		// سلوك التبديل
+		// Toggle behavior
 		$toggleBtn.on("click", () => {
 			const isHidden = $sidebar.is(":hidden");
 			if (isHidden) {
@@ -186,6 +191,27 @@ add_main_section() {
 }
 
 
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+	
 	setup_page() {
 		this.$title_area = this.wrapper.find(".title-area");
 
