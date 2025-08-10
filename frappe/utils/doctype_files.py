@@ -525,7 +525,7 @@ function x7z9_add{clean_doctype}BannerToFormView(frm) {{
     }}
     
     const bannerHtml = `
-        <div class="x7z9-custom-form-banner-wrapper" style="margin: 0 auto; max-width: 95%;">
+        <div class="x7z9-custom-form-banner-wrapper" style="margin: 15px auto 0 auto; max-width: 95%;">
             <div class="x7z9-custom-form-banner" style="
                 background: {config.get('gradient', 'linear-gradient(90deg, #2d6eaf, #51a8f9)')};
                 color: white;
@@ -751,7 +751,7 @@ function x7z9_add{clean_doctype}BannerToFormView(frm) {{
     }}
     
     const bannerHtml = `
-        <div class="x7z9-custom-form-banner-wrapper" style="margin: 0 auto; max-width: 95%;">
+        <div class="x7z9-custom-form-banner-wrapper" style="margin: 15px auto 0 auto; max-width: 95%;">
             <div class="x7z9-custom-form-banner" style="
                 background: {config.get('gradient', 'linear-gradient(90deg, #2d6eaf, #51a8f9)')};
                 color: white;
