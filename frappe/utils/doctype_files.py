@@ -60,6 +60,104 @@ def check_existing_banner_code(doctypes):
 
 
 @frappe.whitelist()
+def create_doctype_js_files(doctypes, banner_config, force_overwrite=False):
+    """
+    Creates or updates JavaScript files for doctypes with banner and footer code
+    Added force_overwrite parameter to control behavior
+    """
+    if isinstance(doctypes, str):
+        doctypes = json.loads(doctypes)
+    if isinstance(banner_config, str):
+        banner_config = json.loads(banner_config)
+    if isinstance(force_overwrite, str):
+        force_overwrite = json.loads(force_overwrite)
+    
+    results = []
+    
+    for doctype in doctypes:
+        try:
+            doc = frappe.get_doc("DocType", doctype)
+            module_name = doc.module
+            base_path = frappe.get_app_path("frappe")
+            
+            doctype_folder = os.path.join(
+                base_path,
+                frappe.scrub(module_name),
+                "doctype",
+                frappe.scrub(doctype)
+            )
+            
+            if not os.path.exists(doctype_folder):
+                os.makedirs(doctype_folder)
+            
+            # Check if files already have banner code
+            list_js_path = os.path.join(doctype_folder, f"{frappe.scrub(doctype)}_list.js")
+            form_js_path = os.path.join(doctype_folder, f"{frappe.scrub(doctype)}.js")
+            
+            # Check existing content
+            list_has_banner = False
+            if os.path.exists(list_js_path):
+                with open(list_js_path, 'r') as f:
+                    list_has_banner = 'custom-smart-banner' in f.read()
+            
+            form_has_banner = False
+            if os.path.exists(form_js_path):
+                with open(form_js_path, 'r') as f:
+                    form_has_banner = 'custom-form-banner' in f.read()
+            
+            # Skip if already has banner and not forcing overwrite
+            if (list_has_banner or form_has_banner) and not force_overwrite:
+                results.append({
+                    "doctype": doctype,
+                    "status": "skipped",
+                    "message": "Already has banner code"
+                })
+                continue
+            
+            # Generate the JavaScript code
+            list_js_content = generate_list_js_code(doctype, banner_config)
+            form_js_content = generate_form_js_code(doctype, banner_config)
+            
+            # Write list JS
+            if force_overwrite or not list_has_banner:
+                with open(list_js_path, 'w') as f:
+                    f.write(list_js_content)
+            
+            # Write form JS
+            if force_overwrite or not form_has_banner:
+                if os.path.exists(form_js_path) and not form_has_banner:
+                    # Inject into existing file
+                    with open(form_js_path, 'r') as f:
+                        existing_content = f.read()
+                    updated_content = inject_banner_into_existing_js(existing_content, doctype, banner_config)
+                    with open(form_js_path, 'w') as f:
+                        f.write(updated_content)
+                else:
+                    # Create new or overwrite
+                    with open(form_js_path, 'w') as f:
+                        f.write(form_js_content)
+            
+            results.append({
+                "doctype": doctype,
+                "status": "success",
+                "list_js": list_js_path,
+                "form_js": form_js_path,
+                "updated_list": force_overwrite or not list_has_banner,
+                "updated_form": force_overwrite or not form_has_banner
+            })
+            
+        except Exception as e:
+            results.append({
+                "doctype": doctype,
+                "status": "error",
+                "error": str(e)
+            })
+    
+    frappe.clear_cache()
+    return results
+
+
+@frappe.whitelist()
 def remove_banner_footer_from_files(doctypes, remove_list=True, remove_form=True, delete_empty=False):
     """
     Remove banner and footer code from JavaScript files
@@ -265,104 +363,6 @@ def remove_banner_code_from_form_js(content, doctype):
     cleaned_content = re.sub(r'//\s*Auto-generated Banner.*?\n', '', cleaned_content)
     
     return cleaned_content.strip()
-
-
-@frappe.whitelist()
-def create_doctype_js_files(doctypes, banner_config, force_overwrite=False):
-    """
-    Creates or updates JavaScript files for doctypes with banner and footer code
-    Added force_overwrite parameter to control behavior
-    """
-    if isinstance(doctypes, str):
-        doctypes = json.loads(doctypes)
-    if isinstance(banner_config, str):
-        banner_config = json.loads(banner_config)
-    if isinstance(force_overwrite, str):
-        force_overwrite = json.loads(force_overwrite)
-    
-    results = []
-    
-    for doctype in doctypes:
-        try:
-            doc = frappe.get_doc("DocType", doctype)
-            module_name = doc.module
-            base_path = frappe.get_app_path("frappe")
-            
-            doctype_folder = os.path.join(
-                base_path,
-                frappe.scrub(module_name),
-                "doctype",
-                frappe.scrub(doctype)
-            )
-            
-            if not os.path.exists(doctype_folder):
-                os.makedirs(doctype_folder)
-            
-            # Check if files already have banner code
-            list_js_path = os.path.join(doctype_folder, f"{frappe.scrub(doctype)}_list.js")
-            form_js_path = os.path.join(doctype_folder, f"{frappe.scrub(doctype)}.js")
-            
-            # Check existing content
-            list_has_banner = False
-            if os.path.exists(list_js_path):
-                with open(list_js_path, 'r') as f:
-                    list_has_banner = 'custom-smart-banner' in f.read()
-            
-            form_has_banner = False
-            if os.path.exists(form_js_path):
-                with open(form_js_path, 'r') as f:
-                    form_has_banner = 'custom-form-banner' in f.read()
-            
-            # Skip if already has banner and not forcing overwrite
-            if (list_has_banner or form_has_banner) and not force_overwrite:
-                results.append({
-                    "doctype": doctype,
-                    "status": "skipped",
-                    "message": "Already has banner code"
-                })
-                continue
-            
-            # Generate the JavaScript code
-            list_js_content = generate_list_js_code(doctype, banner_config)
-            form_js_content = generate_form_js_code(doctype, banner_config)
-            
-            # Write list JS
-            if force_overwrite or not list_has_banner:
-                with open(list_js_path, 'w') as f:
-                    f.write(list_js_content)
-            
-            # Write form JS
-            if force_overwrite or not form_has_banner:
-                if os.path.exists(form_js_path) and not form_has_banner:
-                    # Inject into existing file
-                    with open(form_js_path, 'r') as f:
-                        existing_content = f.read()
-                    updated_content = inject_banner_into_existing_js(existing_content, doctype, banner_config)
-                    with open(form_js_path, 'w') as f:
-                        f.write(updated_content)
-                else:
-                    # Create new or overwrite
-                    with open(form_js_path, 'w') as f:
-                        f.write(form_js_content)
-            
-            results.append({
-                "doctype": doctype,
-                "status": "success",
-                "list_js": list_js_path,
-                "form_js": form_js_path,
-                "updated_list": force_overwrite or not list_has_banner,
-                "updated_form": force_overwrite or not form_has_banner
-            })
-            
-        except Exception as e:
-            results.append({
-                "doctype": doctype,
-                "status": "error",
-                "error": str(e)
-            })
-    
-    frappe.clear_cache()
-    return results
 
 
 def generate_list_js_code(doctype, config):
@@ -661,15 +661,105 @@ def inject_banner_into_existing_js(existing_content, doctype, config):
 def generate_banner_functions(doctype, config):
     """Generate just the banner and footer functions"""
     clean_doctype = doctype.replace(' ', '').replace('-', '')
+    
     return f"""
 function add{clean_doctype}BannerToForm(frm) {{
-    // Banner implementation
     $('.custom-form-banner').remove();
-    // ... rest of banner code
+    
+    const itemName = frm.doc.name || 'New ' + frm.doctype;
+    const isNew = frm.is_new();
+    
+    let statusBadge = '';
+    if (!isNew) {{
+        if (frm.doc.hasOwnProperty('enabled')) {{
+            const enabled = frm.doc.enabled;
+            statusBadge = `<span class="badge badge-${{enabled ? 'success' : 'danger'}}" style="font-size: 14px; padding: 6px 12px;">${{enabled ? 'Active' : 'Disabled'}}</span>`;
+        }} else if (frm.doc.hasOwnProperty('disabled')) {{
+            const enabled = !frm.doc.disabled;
+            statusBadge = `<span class="badge badge-${{enabled ? 'success' : 'danger'}}" style="font-size: 14px; padding: 6px 12px;">${{enabled ? 'Active' : 'Disabled'}}</span>`;
+        }}
+    }}
+    
+    const banner = `
+        <div class="custom-form-banner" style="
+            background: {config.get('gradient', 'linear-gradient(90deg, #2d6eaf, #51a8f9)')};
+            color: white;
+            padding: 20px 24px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 8px;
+            margin: -5px -20px 20px -20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease-out;
+        ">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                <div style="display: flex; align-items: center;">
+                    <i class="fa {config.get('icon', 'fa-list')}" style="margin-right: 12px; font-size: 24px;"></i>
+                    <div>
+                        <div style="font-size: 20px; font-weight: 600;">
+                            ${{isNew ? 'Create New {doctype}' : itemName}}
+                        </div>
+                        ${{!isNew ? '<div style="font-size: 14px; opacity: 0.9; margin-top: 2px;">{doctype} Configuration</div>' : ''}}
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    ${{statusBadge}}
+                    ${{!isNew ? `<button class="btn btn-light btn-sm" onclick="cur_frm.print_doc()"><i class="fa fa-print"></i> Print</button>` : ''}}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    $(frm.wrapper).find('.layout-main-section').prepend(banner);
 }}
 
 function add{clean_doctype}FooterToForm(frm) {{
-    // Footer implementation
     $('.custom-form-footer').remove();
-    // ... rest of footer code
-}}"""
+    
+    const isNew = frm.is_new();
+    
+    const footer = `
+        <div class="custom-form-footer" style="
+            background: linear-gradient(90deg, #f8f9fa, #e9ecef);
+            border-top: 2px solid #2d6eaf;
+            padding: 24px;
+            margin: 20px -20px -20px -20px;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        ">
+            <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <img src="{config.get('logo_path', '/files/logo.png')}" alt="Company Logo" style="height: 45px; width: auto;">
+                    <div>
+                        <div style="font-size: 16px; color: #2d6eaf; font-weight: 600;">
+                            {config.get('company_name', 'Your Company')}
+                        </div>
+                        <div style="font-size: 13px; color: #666;">
+                            Enterprise Management System
+                        </div>
+                        <div style="font-size: 11px; color: #999; margin-top: 2px;">
+                            © ${{new Date().getFullYear()}} All rights reserved
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+                    ${{!isNew ? `
+                        <div style="font-size: 12px; color: #666; text-align: right;">
+                            <div>Last Modified: ${{frappe.datetime.prettyDate(frm.doc.modified)}}</div>
+                            <div>By: ${{frm.doc.modified_by}}</div>
+                        </div>
+                    ` : ''}}
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-sm btn-default" onclick="frappe.set_route('List', '{doctype}')">
+                            <i class="fa fa-list"></i> Back to List
+                        </button>
+                        ${{!isNew ? `<button class="btn btn-sm btn-info" onclick="frappe.new_doc('{doctype}')"><i class="fa fa-plus"></i> New {doctype}</button>` : ''}}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    $(frm.wrapper).find('.layout-main-section').append(footer);
+}}
+"""
