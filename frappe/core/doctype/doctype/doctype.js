@@ -1,6 +1,58 @@
 // Copyright (c) 2015, Frappe Technologies Pvt. Ltd. and Contributors
 // MIT License. See license.txt
 
+
+frappe.ui.form.on('DocType', {
+    refresh(frm) {
+        if (frappe.user_roles.includes('System Manager')) {
+            frm.add_custom_button('📥 JSON File', async function () {
+                const doctype_name = frm.doc.name;
+
+                try {
+                    const response = await fetch(`/api/resource/DocType/${doctype_name}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Frappe-CSRF-Token': frappe.csrf_token
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (!data || !data.data) {
+                        frappe.throw(__('❌ Failed to fetch JSON.'));
+                    }
+
+                    const json = JSON.stringify(data.data, null, 4);
+                    const blob = new Blob([json], { type: 'application/json' });
+
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `${doctype_name}.json`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                } catch (err) {
+                    frappe.msgprint(__('❌ Error fetching DocType JSON'));
+                    console.error(err);
+                }
+            }).css({
+                'background-color': '#f97316',
+                color: 'white',
+                'border-radius': '6px',
+                padding: '8px 14px',
+                'font-weight': 'bold'
+            });
+        }
+    }
+});
+
+
+
+
+
+
 frappe.ui.form.on("DocType", {
 	onload: function (frm) {
 		if (frm.is_new() && !frm.doc?.fields) {
