@@ -141,7 +141,6 @@ add_main_section() {
 					position: fixed;
 					top: 50%;
 					right: 0;
-					transform: translateY(-50%);
 					writing-mode: vertical-rl;         /* نص عمودي */
 					text-orientation: mixed;
 					font-size: 12px;
