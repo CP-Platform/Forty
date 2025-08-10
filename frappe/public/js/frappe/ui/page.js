@@ -87,7 +87,6 @@ frappe.ui.Page = class Page {
 
 
 add_main_section() {
-	// Render base page wrapper
 	$(frappe.render_template("page", {})).appendTo(this.wrapper);
 
 	if (this.single_column) {
@@ -114,7 +113,6 @@ add_main_section() {
 		`
 		);
 
-		// Put sidebar on the right if needed
 		if (this.sidebar_position === "Right") {
 			this.wrapper
 				.find(".layout-main-section-wrapper")
@@ -124,58 +122,40 @@ add_main_section() {
 
 		const $layout  = this.wrapper.find(".layout-main.layout-two-column");
 		const $sidebar = this.wrapper.find(".layout-side-section");
-
-		// Auto-collapse on load
 		$sidebar.slideUp(0).attr("data-collapsed", "1");
 		$layout.addClass("sidebar-collapsed");
 
-		// Inject styles once
+		// CSS بسيط للزر
 		const styleId = "vertical-sidebar-toggle-style";
 		if (!document.getElementById(styleId)) {
 			$(`<style id="${styleId}">
-				/* توسعة القسم الرئيسي عند طيّ الشريط */
-				.layout-two-column.sidebar-collapsed .layout-main-section-wrapper { width: 100%; }
-
-				/* زر نصي عمودي صغير على أقصى اليمين */
 				.vertical-sidebar-toggle {
 					position: fixed;
 					top: 50%;
 					right: 0;
-					writing-mode: vertical-rl;         /* نص عمودي */
+					transform: translateY(-50%);
+					writing-mode: vertical-rl;
 					text-orientation: mixed;
 					font-size: 12px;
-					line-height: 1;
-					padding: 8px 6px;
-					background: rgba(0, 123, 255, 0.85);
-					color: #fff;
+					padding: 4px;
+					background: none;
+					color: inherit;
 					border: none;
-					border-top-left-radius: 8px;
-					border-bottom-left-radius: 8px;
-					box-shadow: 0 4px 8px rgba(0,0,0,0.25);
 					cursor: pointer;
 					z-index: 9999;
-					transition: background-color .2s ease, transform .15s ease;
-					user-select: none;
 				}
 				.vertical-sidebar-toggle:hover {
-					background: rgba(0, 123, 255, 1);
-					transform: translateY(-50%) scale(1.03);
-				}
-				/* مسافة آمنة يسار شريط التمرير في بعض المتصفحات */
-				@supports (inset-inline-end: 0) {
-					.vertical-sidebar-toggle { inset-inline-end: 0; right: auto; }
+					text-decoration: underline;
 				}
 			</style>`).appendTo(document.head);
 		}
 
-		// أنشئ الزر فقط إذا وُجد Sidebar (ويُفضَّل إظهاره في Form/List فقط)
+		// الزر يظهر فقط إذا فيه Sidebar وكنا في Form أو List
 		const route = frappe.get_route();
-		const inFormOrList = (route[0] === "Form" || route[0] === "List");
-		if ($sidebar.length && inFormOrList) {
+		if ($sidebar.length && (route[0] === "Form" || route[0] === "List")) {
 			const $btn = $(`<button type="button" class="vertical-sidebar-toggle">Sidebar</button>`)
 				.appendTo("body");
 
-			// Toggle behavior
 			$btn.on("click", () => {
 				const isHidden = $sidebar.is(":hidden");
 				if (isHidden) {
@@ -191,7 +171,6 @@ add_main_section() {
 
 	this.setup_page();
 }
-
 
 
 
