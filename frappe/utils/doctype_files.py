@@ -40,7 +40,7 @@ def check_existing_banner_code(doctypes):
             if os.path.exists(form_js_path):
                 with open(form_js_path, 'r') as f:
                     content = f.read()
-                    has_form_banner = 'x7z9_custom_form_banner' in content
+                    has_form_banner = 'x7z9_custom_form_banner' in content or 'x7z9_add' in content
             
             results[doctype] = {
                 'has_list_banner': has_list_banner,
@@ -103,7 +103,8 @@ def create_doctype_js_files(doctypes, banner_config, force_overwrite=False):
             form_has_banner = False
             if os.path.exists(form_js_path):
                 with open(form_js_path, 'r') as f:
-                    form_has_banner = 'x7z9_custom_form_banner' in f.read()
+                    content = f.read()
+                    form_has_banner = 'x7z9_custom_form_banner' in content or 'x7z9_add' in content
             
             # Skip if already has banner and not forcing overwrite
             if (list_has_banner or form_has_banner) and not force_overwrite:
@@ -223,7 +224,7 @@ def remove_banner_footer_from_files(doctypes, remove_list=True, remove_form=True
                     with open(form_js_path, 'r') as f:
                         content = f.read()
                     
-                    if 'x7z9_custom_form_banner' in content:
+                    if 'x7z9_custom_form_banner' in content or 'x7z9_add' in content:
                         cleaned_content = remove_banner_code_from_form_js(content, doctype)
                         
                         # Check if file is now empty or only has empty frappe.ui.form.on
@@ -321,40 +322,35 @@ def remove_banner_code_from_list_js(content, doctype):
 
 
 def remove_banner_code_from_form_js(content, doctype):
-    """Remove banner and footer code from form JS content"""
+    """Remove banner and footer code from form JS content - FIXED VERSION"""
     clean_doctype = doctype.replace(' ', '').replace('-', '')
     
-    # First, try to remove the banner/footer function calls from onload/refresh
-    # Pattern to match and remove banner/footer calls
-    patterns = [
-        # Remove banner function calls with unique names
+    # Remove function calls
+    call_patterns = [
         rf'x7z9_add{clean_doctype}BannerToFormView\s*\(\s*frm\s*\)\s*;?\s*\n?',
-        # Remove footer function calls with unique names
         rf'x7z9_add{clean_doctype}FooterToFormView\s*\(\s*frm\s*\)\s*;?\s*\n?',
     ]
     
     cleaned_content = content
-    for pattern in patterns:
+    for pattern in call_patterns:
         cleaned_content = re.sub(pattern, '', cleaned_content)
     
-    # Remove the banner and footer function definitions
-    function_patterns = [
-        # Remove banner function with unique name
-        rf'function\s+x7z9_add{clean_doctype}BannerToFormView\s*\([^)]*\)\s*\{{[^}}]*(?:\{{[^}}]*\}}[^}}]*)*\}}',
-        # Remove footer function with unique name
-        rf'function\s+x7z9_add{clean_doctype}FooterToFormView\s*\([^)]*\)\s*\{{[^}}]*(?:\{{[^}}]*\}}[^}}]*)*\}}',
-    ]
+    # Remove function definitions - more flexible pattern
+    # This pattern handles multi-line functions better
+    banner_func_pattern = rf'function\s+x7z9_add{clean_doctype}BannerToFormView\s*\([^)]*\)\s*\{{(?:[^{{}}]*\{{[^{{}}]*\}})*[^{{}}]*\}}'
+    footer_func_pattern = rf'function\s+x7z9_add{clean_doctype}FooterToFormView\s*\([^)]*\)\s*\{{(?:[^{{}}]*\{{[^{{}}]*\}})*[^{{}}]*\}}'
     
-    for pattern in function_patterns:
-        cleaned_content = re.sub(pattern, '', cleaned_content, flags=re.DOTALL)
+    # Remove functions
+    cleaned_content = re.sub(banner_func_pattern, '', cleaned_content, flags=re.DOTALL)
+    cleaned_content = re.sub(footer_func_pattern, '', cleaned_content, flags=re.DOTALL)
     
     # Clean up empty onload/refresh functions
-    # Pattern to match empty function bodies
     empty_func_pattern = r'(onload|refresh):\s*function\s*\([^)]*\)\s*\{\s*\}'
     cleaned_content = re.sub(empty_func_pattern, '', cleaned_content)
     
-    # Remove trailing commas from objects
+    # Remove trailing commas
     cleaned_content = re.sub(r',(\s*\})', r'\1', cleaned_content)
+    cleaned_content = re.sub(r',\s*,', ',', cleaned_content)
     
     # Clean up extra newlines
     cleaned_content = re.sub(r'\n\s*\n\s*\n', '\n\n', cleaned_content)
@@ -492,22 +488,27 @@ function addFooterTo{clean_doctype}ListView() {{
 
 
 def generate_form_js_code(doctype, config):
-    """Generate complete form view JavaScript code with unique function names"""
+    """Generate complete form view JavaScript code with safer insertion"""
     clean_doctype = doctype.replace(' ', '').replace('-', '')
     
     return f"""frappe.ui.form.on('{doctype}', {{
     onload: function(frm) {{
-        x7z9_add{clean_doctype}BannerToFormView(frm);
-        x7z9_add{clean_doctype}FooterToFormView(frm);
+        setTimeout(() => {{
+            x7z9_add{clean_doctype}BannerToFormView(frm);
+            x7z9_add{clean_doctype}FooterToFormView(frm);
+        }}, 100);
     }},
     refresh: function(frm) {{
-        x7z9_add{clean_doctype}BannerToFormView(frm);
-        x7z9_add{clean_doctype}FooterToFormView(frm);
+        setTimeout(() => {{
+            x7z9_add{clean_doctype}BannerToFormView(frm);
+            x7z9_add{clean_doctype}FooterToFormView(frm);
+        }}, 100);
     }}
 }});
 
 function x7z9_add{clean_doctype}BannerToFormView(frm) {{
-    $('.x7z9-custom-form-banner').remove();
+    // Remove any existing banner
+    $('.x7z9-custom-form-banner-wrapper').remove();
     
     const itemName = frm.doc.name || 'New ' + frm.doctype;
     const isNew = frm.is_new();
@@ -523,89 +524,110 @@ function x7z9_add{clean_doctype}BannerToFormView(frm) {{
         }}
     }}
     
-    const banner = `
-        <div class="x7z9-custom-form-banner" style="
-            background: {config.get('gradient', 'linear-gradient(90deg, #2d6eaf, #51a8f9)')};
-            color: white;
-            padding: 20px 24px;
-            font-size: 18px;
-            font-weight: 600;
-            border-radius: 8px;
-            margin: -5px auto 20px auto;
-            max-width: 95%;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            animation: slideIn 0.3s ease-out;
-        ">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
-                <div style="display: flex; align-items: center;">
-                    <i class="fa {config.get('icon', 'fa-list')}" style="margin-right: 12px; font-size: 24px;"></i>
-                    <div>
-                        <div style="font-size: 20px; font-weight: 600;">
-                            ${{isNew ? 'Create New {doctype}' : itemName}}
+    const bannerHtml = `
+        <div class="x7z9-custom-form-banner-wrapper" style="margin: 0 auto; max-width: 95%;">
+            <div class="x7z9-custom-form-banner" style="
+                background: {config.get('gradient', 'linear-gradient(90deg, #2d6eaf, #51a8f9)')};
+                color: white;
+                padding: 20px 24px;
+                font-size: 18px;
+                font-weight: 600;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: slideIn 0.3s ease-out;
+                position: relative;
+                z-index: 1;
+            ">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                    <div style="display: flex; align-items: center;">
+                        <i class="fa {config.get('icon', 'fa-list')}" style="margin-right: 12px; font-size: 24px;"></i>
+                        <div>
+                            <div style="font-size: 20px; font-weight: 600;">
+                                ${{isNew ? 'Create New {doctype}' : itemName}}
+                            </div>
+                            ${{!isNew ? '<div style="font-size: 14px; opacity: 0.9; margin-top: 2px;">{doctype} Configuration</div>' : ''}}
                         </div>
-                        ${{!isNew ? '<div style="font-size: 14px; opacity: 0.9; margin-top: 2px;">{doctype} Configuration</div>' : ''}}
                     </div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    ${{statusBadge}}
-                    ${{!isNew ? `<button class="btn btn-light btn-sm" onclick="cur_frm.print_doc()"><i class="fa fa-print"></i> Print</button>` : ''}}
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        ${{statusBadge}}
+                        ${{!isNew ? `<button class="btn btn-light btn-sm" onclick="cur_frm.print_doc()"><i class="fa fa-print"></i> Print</button>` : ''}}
+                    </div>
                 </div>
             </div>
         </div>
     `;
     
-    $(frm.wrapper).find('.layout-main-section').prepend(banner);
+    // Insert before the form layout
+    const pageForm = $(frm.wrapper).find('.layout-main-section-wrapper');
+    if (pageForm.length) {{
+        pageForm.before(bannerHtml);
+    }} else {{
+        // Fallback: insert at the beginning of the form
+        $(frm.wrapper).prepend(bannerHtml);
+    }}
 }}
 
 function x7z9_add{clean_doctype}FooterToFormView(frm) {{
-    $('.x7z9-custom-form-footer').remove();
+    // Remove any existing footer
+    $('.x7z9-custom-form-footer-wrapper').remove();
     
     const isNew = frm.is_new();
     
-    const footer = `
-        <div class="x7z9-custom-form-footer" style="
-            background: linear-gradient(90deg, #f8f9fa, #e9ecef);
-            border-top: 2px solid #2d6eaf;
-            padding: 24px;
-            margin: 20px auto -20px auto;
-            max-width: 95%;
-            border-radius: 0 0 8px 8px;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-        ">
-            <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 20px;">
-                    <img src="{config.get('logo_path', '/files/logo.png')}" alt="Company Logo" style="height: 45px; width: auto;">
-                    <div>
-                        <div style="font-size: 16px; color: #2d6eaf; font-weight: 600;">
-                            {config.get('company_name', 'Your Company')}
-                        </div>
-                        <div style="font-size: 13px; color: #666;">
-                            Enterprise Management System
-                        </div>
-                        <div style="font-size: 11px; color: #999; margin-top: 2px;">
-                            © ${{new Date().getFullYear()}} All rights reserved
+    const footerHtml = `
+        <div class="x7z9-custom-form-footer-wrapper" style="margin: 0 auto; max-width: 95%;">
+            <div class="x7z9-custom-form-footer" style="
+                background: linear-gradient(90deg, #f8f9fa, #e9ecef);
+                border-top: 2px solid #2d6eaf;
+                padding: 24px;
+                margin-top: 20px;
+                border-radius: 8px;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+                position: relative;
+                z-index: 1;
+            ">
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <img src="{config.get('logo_path', '/files/logo.png')}" alt="Company Logo" style="height: 45px; width: auto;">
+                        <div>
+                            <div style="font-size: 16px; color: #2d6eaf; font-weight: 600;">
+                                {config.get('company_name', 'Your Company')}
+                            </div>
+                            <div style="font-size: 13px; color: #666;">
+                                Enterprise Management System
+                            </div>
+                            <div style="font-size: 11px; color: #999; margin-top: 2px;">
+                                © ${{new Date().getFullYear()}} All rights reserved
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
-                    ${{!isNew ? `
-                        <div style="font-size: 12px; color: #666; text-align: right;">
-                            <div>Last Modified: ${{frappe.datetime.prettyDate(frm.doc.modified)}}</div>
-                            <div>By: ${{frm.doc.modified_by}}</div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+                        ${{!isNew ? `
+                            <div style="font-size: 12px; color: #666; text-align: right;">
+                                <div>Last Modified: ${{frappe.datetime.prettyDate(frm.doc.modified)}}</div>
+                                <div>By: ${{frm.doc.modified_by}}</div>
+                            </div>
+                        ` : ''}}
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-sm btn-default" onclick="frappe.set_route('List', '{doctype}')">
+                                <i class="fa fa-list"></i> Back to List
+                            </button>
+                            ${{!isNew ? `<button class="btn btn-sm btn-info" onclick="frappe.new_doc('{doctype}')"><i class="fa fa-plus"></i> New {doctype}</button>` : ''}}
                         </div>
-                    ` : ''}}
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-sm btn-default" onclick="frappe.set_route('List', '{doctype}')">
-                            <i class="fa fa-list"></i> Back to List
-                        </button>
-                        ${{!isNew ? `<button class="btn btn-sm btn-info" onclick="frappe.new_doc('{doctype}')"><i class="fa fa-plus"></i> New {doctype}</button>` : ''}}
                     </div>
                 </div>
             </div>
         </div>
     `;
     
-    $(frm.wrapper).find('.layout-main-section').append(footer);
+    // Insert after the form layout
+    const pageForm = $(frm.wrapper).find('.layout-main-section-wrapper');
+    if (pageForm.length) {{
+        pageForm.after(footerHtml);
+    }} else {{
+        // Fallback: append to the form
+        $(frm.wrapper).append(footerHtml);
+    }}
 }}
 """
 
@@ -621,33 +643,76 @@ def inject_banner_into_existing_js(existing_content, doctype, config):
         new_lines = []
         inside_form_on = False
         brace_count = 0
+        onload_exists = False
+        refresh_exists = False
         
-        for i, line in enumerate(lines):
+        # First pass: check what exists
+        for line in lines:
+            if 'onload:' in line and 'function' in line:
+                onload_exists = True
+            if 'refresh:' in line and 'function' in line:
+                refresh_exists = True
+        
+        # Second pass: inject code
+        inside_form_on = False
+        brace_count = 0
+        i = 0
+        while i < len(lines):
+            line = lines[i]
             new_lines.append(line)
             
             if f"frappe.ui.form.on('{doctype}'," in line:
                 inside_form_on = True
+                brace_count = 0
             
             if inside_form_on:
                 brace_count += line.count('{') - line.count('}')
                 
-                # Inject after onload if it exists
-                if 'onload:' in line and 'function' in line:
-                    # Find the end of onload function
+                # If we're at the opening brace of frappe.ui.form.on
+                if brace_count == 1 and '{' in line and not onload_exists and not refresh_exists:
+                    # Add our hooks after the opening brace
+                    indent = '\t'
+                    new_lines.append(f"{indent}onload: function(frm) {{")
+                    new_lines.append(f"{indent}\tsetTimeout(() => {{")
+                    new_lines.append(f"{indent}\t\tx7z9_add{clean_doctype}BannerToFormView(frm);")
+                    new_lines.append(f"{indent}\t\tx7z9_add{clean_doctype}FooterToFormView(frm);")
+                    new_lines.append(f"{indent}\t}}, 100);")
+                    new_lines.append(f"{indent}}},")
+                    new_lines.append(f"{indent}refresh: function(frm) {{")
+                    new_lines.append(f"{indent}\tsetTimeout(() => {{")
+                    new_lines.append(f"{indent}\t\tx7z9_add{clean_doctype}BannerToFormView(frm);")
+                    new_lines.append(f"{indent}\t\tx7z9_add{clean_doctype}FooterToFormView(frm);")
+                    new_lines.append(f"{indent}\t}}, 100);")
+                    new_lines.append(f"{indent}}},")
+                
+                # Inject into existing onload
+                elif onload_exists and 'onload:' in line and 'function' in line:
                     j = i + 1
                     func_brace_count = 1
                     while j < len(lines) and func_brace_count > 0:
                         func_brace_count += lines[j].count('{') - lines[j].count('}')
+                        if func_brace_count == 1 and '{' in lines[j]:
+                            # Found opening of function
+                            new_lines.append(lines[j])
+                            indent = '\t\t'
+                            new_lines.append(f"{indent}setTimeout(() => {{")
+                            new_lines.append(f"{indent}\tx7z9_add{clean_doctype}BannerToFormView(frm);")
+                            new_lines.append(f"{indent}\tx7z9_add{clean_doctype}FooterToFormView(frm);")
+                            new_lines.append(f"{indent}}}, 100);")
+                            j += 1
+                            break
                         j += 1
                     
-                    # Insert our banner call before the closing brace
-                    if j > 0:
-                        indent = '\t\t'
-                        new_lines.insert(len(new_lines) - 1, f"{indent}x7z9_add{clean_doctype}BannerToFormView(frm);")
-                        new_lines.insert(len(new_lines) - 1, f"{indent}x7z9_add{clean_doctype}FooterToFormView(frm);")
+                    # Skip the lines we've already processed
+                    while i < j - 1:
+                        i += 1
+                        if i < len(lines):
+                            new_lines.append(lines[i])
                 
-                if brace_count == 0:
+                if brace_count == 0 and inside_form_on:
                     inside_form_on = False
+            
+            i += 1
         
         # Add our banner functions at the end
         new_lines.extend([
@@ -663,12 +728,13 @@ def inject_banner_into_existing_js(existing_content, doctype, config):
 
 
 def generate_banner_functions(doctype, config):
-    """Generate just the banner and footer functions with unique names"""
+    """Generate just the banner and footer functions with safer insertion"""
     clean_doctype = doctype.replace(' ', '').replace('-', '')
     
     return f"""
 function x7z9_add{clean_doctype}BannerToFormView(frm) {{
-    $('.x7z9-custom-form-banner').remove();
+    // Remove any existing banner
+    $('.x7z9-custom-form-banner-wrapper').remove();
     
     const itemName = frm.doc.name || 'New ' + frm.doctype;
     const isNew = frm.is_new();
@@ -684,88 +750,109 @@ function x7z9_add{clean_doctype}BannerToFormView(frm) {{
         }}
     }}
     
-    const banner = `
-        <div class="x7z9-custom-form-banner" style="
-            background: {config.get('gradient', 'linear-gradient(90deg, #2d6eaf, #51a8f9)')};
-            color: white;
-            padding: 20px 24px;
-            font-size: 18px;
-            font-weight: 600;
-            border-radius: 8px;
-            margin: -5px auto 20px auto;
-            max-width: 95%;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            animation: slideIn 0.3s ease-out;
-        ">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
-                <div style="display: flex; align-items: center;">
-                    <i class="fa {config.get('icon', 'fa-list')}" style="margin-right: 12px; font-size: 24px;"></i>
-                    <div>
-                        <div style="font-size: 20px; font-weight: 600;">
-                            ${{isNew ? 'Create New {doctype}' : itemName}}
+    const bannerHtml = `
+        <div class="x7z9-custom-form-banner-wrapper" style="margin: 0 auto; max-width: 95%;">
+            <div class="x7z9-custom-form-banner" style="
+                background: {config.get('gradient', 'linear-gradient(90deg, #2d6eaf, #51a8f9)')};
+                color: white;
+                padding: 20px 24px;
+                font-size: 18px;
+                font-weight: 600;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: slideIn 0.3s ease-out;
+                position: relative;
+                z-index: 1;
+            ">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                    <div style="display: flex; align-items: center;">
+                        <i class="fa {config.get('icon', 'fa-list')}" style="margin-right: 12px; font-size: 24px;"></i>
+                        <div>
+                            <div style="font-size: 20px; font-weight: 600;">
+                                ${{isNew ? 'Create New {doctype}' : itemName}}
+                            </div>
+                            ${{!isNew ? '<div style="font-size: 14px; opacity: 0.9; margin-top: 2px;">{doctype} Configuration</div>' : ''}}
                         </div>
-                        ${{!isNew ? '<div style="font-size: 14px; opacity: 0.9; margin-top: 2px;">{doctype} Configuration</div>' : ''}}
                     </div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    ${{statusBadge}}
-                    ${{!isNew ? `<button class="btn btn-light btn-sm" onclick="cur_frm.print_doc()"><i class="fa fa-print"></i> Print</button>` : ''}}
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        ${{statusBadge}}
+                        ${{!isNew ? `<button class="btn btn-light btn-sm" onclick="cur_frm.print_doc()"><i class="fa fa-print"></i> Print</button>` : ''}}
+                    </div>
                 </div>
             </div>
         </div>
     `;
     
-    $(frm.wrapper).find('.layout-main-section').prepend(banner);
+    // Insert before the form layout
+    const pageForm = $(frm.wrapper).find('.layout-main-section-wrapper');
+    if (pageForm.length) {{
+        pageForm.before(bannerHtml);
+    }} else {{
+        // Fallback: insert at the beginning of the form
+        $(frm.wrapper).prepend(bannerHtml);
+    }}
 }}
 
 function x7z9_add{clean_doctype}FooterToFormView(frm) {{
-    $('.x7z9-custom-form-footer').remove();
+    // Remove any existing footer
+    $('.x7z9-custom-form-footer-wrapper').remove();
     
     const isNew = frm.is_new();
     
-    const footer = `
-        <div class="x7z9-custom-form-footer" style="
-            background: linear-gradient(90deg, #f8f9fa, #e9ecef);
-            border-top: 2px solid #2d6eaf;
-            padding: 24px;
-            margin: 20px auto -20px auto;
-            max-width: 95%;
-            border-radius: 0 0 8px 8px;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-        ">
-            <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 20px;">
-                    <img src="{config.get('logo_path', '/files/logo.png')}" alt="Company Logo" style="height: 45px; width: auto;">
-                    <div>
-                        <div style="font-size: 16px; color: #2d6eaf; font-weight: 600;">
-                            {config.get('company_name', 'Your Company')}
-                        </div>
-                        <div style="font-size: 13px; color: #666;">
-                            Enterprise Management System
-                        </div>
-                        <div style="font-size: 11px; color: #999; margin-top: 2px;">
-                            © ${{new Date().getFullYear()}} All rights reserved
+    const footerHtml = `
+        <div class="x7z9-custom-form-footer-wrapper" style="margin: 0 auto; max-width: 95%;">
+            <div class="x7z9-custom-form-footer" style="
+                background: linear-gradient(90deg, #f8f9fa, #e9ecef);
+                border-top: 2px solid #2d6eaf;
+                padding: 24px;
+                margin-top: 20px;
+                border-radius: 8px;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+                position: relative;
+                z-index: 1;
+            ">
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <img src="{config.get('logo_path', '/files/logo.png')}" alt="Company Logo" style="height: 45px; width: auto;">
+                        <div>
+                            <div style="font-size: 16px; color: #2d6eaf; font-weight: 600;">
+                                {config.get('company_name', 'Your Company')}
+                            </div>
+                            <div style="font-size: 13px; color: #666;">
+                                Enterprise Management System
+                            </div>
+                            <div style="font-size: 11px; color: #999; margin-top: 2px;">
+                                © ${{new Date().getFullYear()}} All rights reserved
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
-                    ${{!isNew ? `
-                        <div style="font-size: 12px; color: #666; text-align: right;">
-                            <div>Last Modified: ${{frappe.datetime.prettyDate(frm.doc.modified)}}</div>
-                            <div>By: ${{frm.doc.modified_by}}</div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+                        ${{!isNew ? `
+                            <div style="font-size: 12px; color: #666; text-align: right;">
+                                <div>Last Modified: ${{frappe.datetime.prettyDate(frm.doc.modified)}}</div>
+                                <div>By: ${{frm.doc.modified_by}}</div>
+                            </div>
+                        ` : ''}}
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-sm btn-default" onclick="frappe.set_route('List', '{doctype}')">
+                                <i class="fa fa-list"></i> Back to List
+                            </button>
+                            ${{!isNew ? `<button class="btn btn-sm btn-info" onclick="frappe.new_doc('{doctype}')"><i class="fa fa-plus"></i> New {doctype}</button>` : ''}}
                         </div>
-                    ` : ''}}
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-sm btn-default" onclick="frappe.set_route('List', '{doctype}')">
-                            <i class="fa fa-list"></i> Back to List
-                        </button>
-                        ${{!isNew ? `<button class="btn btn-sm btn-info" onclick="frappe.new_doc('{doctype}')"><i class="fa fa-plus"></i> New {doctype}</button>` : ''}}
                     </div>
                 </div>
             </div>
         </div>
     `;
     
-    $(frm.wrapper).find('.layout-main-section').append(footer);
+    // Insert after the form layout
+    const pageForm = $(frm.wrapper).find('.layout-main-section-wrapper');
+    if (pageForm.length) {{
+        pageForm.after(footerHtml);
+    }} else {{
+        // Fallback: append to the form
+        $(frm.wrapper).append(footerHtml);
+    }}
 }}
 """
