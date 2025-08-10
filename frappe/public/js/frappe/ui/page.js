@@ -91,7 +91,6 @@ add_main_section() {
 	$(frappe.render_template("page", {})).appendTo(this.wrapper);
 
 	if (this.single_column) {
-		// One-column layout
 		this.add_view(
 			"main",
 			'<div class="layout-main">\
@@ -102,7 +101,6 @@ add_main_section() {
 			</div>'
 		);
 	} else {
-		// Two-column layout
 		this.add_view(
 			"main",
 			`
@@ -116,7 +114,7 @@ add_main_section() {
 		`
 		);
 
-		// Sidebar on right
+		// Put sidebar on the right if needed
 		if (this.sidebar_position === "Right") {
 			this.wrapper
 				.find(".layout-main-section-wrapper")
@@ -124,61 +122,77 @@ add_main_section() {
 			this.wrapper.find(".layout-side-section").addClass("right");
 		}
 
-		// Auto-collapse on load
 		const $layout  = this.wrapper.find(".layout-main.layout-two-column");
 		const $sidebar = this.wrapper.find(".layout-side-section");
+
+		// Auto-collapse on load
 		$sidebar.slideUp(0).attr("data-collapsed", "1");
 		$layout.addClass("sidebar-collapsed");
 
-		// CSS for floating gear button
-		const styleId = "floating-gear-button-style";
+		// Inject styles once
+		const styleId = "vertical-sidebar-toggle-style";
 		if (!document.getElementById(styleId)) {
 			$(`<style id="${styleId}">
-				.floating-gear-btn {
+				/* توسعة القسم الرئيسي عند طيّ الشريط */
+				.layout-two-column.sidebar-collapsed .layout-main-section-wrapper { width: 100%; }
+
+				/* زر نصي عمودي صغير على أقصى اليمين */
+				.vertical-sidebar-toggle {
 					position: fixed;
-					bottom: 1cm;   /* ارتفاع 1 سم من الأسفل */
-					right: 20px;   /* نفس المسافة من اليمين */
-					width: 50px;
-					height: 50px;
-					border-radius: 50%;
-					background-color: rgba(0, 123, 255, 0.85);
+					top: 50%;
+					right: 0;
+					transform: translateY(-50%);
+					writing-mode: vertical-rl;         /* نص عمودي */
+					text-orientation: mixed;
+					font-size: 12px;
+					line-height: 1;
+					padding: 8px 6px;
+					background: rgba(0, 123, 255, 0.85);
 					color: #fff;
-					font-size: 24px;
 					border: none;
-					box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+					border-top-left-radius: 8px;
+					border-bottom-left-radius: 8px;
+					box-shadow: 0 4px 8px rgba(0,0,0,0.25);
 					cursor: pointer;
 					z-index: 9999;
-					display: flex;
-					align-items: center;
-					justify-content: center;
-					transition: background-color 0.3s ease, transform 0.2s ease;
+					transition: background-color .2s ease, transform .15s ease;
+					user-select: none;
 				}
-				.floating-gear-btn:hover {
-					background-color: rgba(0, 123, 255, 1);
-					transform: scale(1.05);
+				.vertical-sidebar-toggle:hover {
+					background: rgba(0, 123, 255, 1);
+					transform: translateY(-50%) scale(1.03);
+				}
+				/* مسافة آمنة يسار شريط التمرير في بعض المتصفحات */
+				@supports (inset-inline-end: 0) {
+					.vertical-sidebar-toggle { inset-inline-end: 0; right: auto; }
 				}
 			</style>`).appendTo(document.head);
 		}
 
-		// Floating button ⚙️
-		const $gearBtn = $(`<button type="button" class="floating-gear-btn">⚙️</button>`)
-			.appendTo("body");
+		// أنشئ الزر فقط إذا وُجد Sidebar (ويُفضَّل إظهاره في Form/List فقط)
+		const route = frappe.get_route();
+		const inFormOrList = (route[0] === "Form" || route[0] === "List");
+		if ($sidebar.length && inFormOrList) {
+			const $btn = $(`<button type="button" class="vertical-sidebar-toggle">Sidebar</button>`)
+				.appendTo("body");
 
-		// Toggle sidebar on click
-		$gearBtn.on("click", () => {
-			const isHidden = $sidebar.is(":hidden");
-			if (isHidden) {
-				$sidebar.slideDown(150).attr("data-collapsed", "0");
-				$layout.removeClass("sidebar-collapsed");
-			} else {
-				$sidebar.slideUp(150).attr("data-collapsed", "1");
-				$layout.addClass("sidebar-collapsed");
-			}
-		});
+			// Toggle behavior
+			$btn.on("click", () => {
+				const isHidden = $sidebar.is(":hidden");
+				if (isHidden) {
+					$sidebar.slideDown(150).attr("data-collapsed", "0");
+					$layout.removeClass("sidebar-collapsed");
+				} else {
+					$sidebar.slideUp(150).attr("data-collapsed", "1");
+					$layout.addClass("sidebar-collapsed");
+				}
+			});
+		}
 	}
 
 	this.setup_page();
 }
+
 
 
 
