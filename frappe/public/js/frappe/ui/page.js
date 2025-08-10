@@ -102,7 +102,7 @@ add_main_section() {
 			</div>'
 		);
 	} else {
-		// Two-column layout (with sidebar)
+		// Two-column layout
 		this.add_view(
 			"main",
 			`
@@ -116,7 +116,7 @@ add_main_section() {
 		`
 		);
 
-		// If sidebar should be on the Right, move it and add class
+		// Sidebar on right
 		if (this.sidebar_position === "Right") {
 			this.wrapper
 				.find(".layout-main-section-wrapper")
@@ -124,30 +124,26 @@ add_main_section() {
 			this.wrapper.find(".layout-side-section").addClass("right");
 		}
 
-		// ===== Auto-collapse on load =====
-		const $layout   = this.wrapper.find(".layout-main.layout-two-column");
-		const $sidebar  = this.wrapper.find(".layout-side-section");
-
+		// Auto-collapse on load
+		const $layout  = this.wrapper.find(".layout-main.layout-two-column");
+		const $sidebar = this.wrapper.find(".layout-side-section");
 		$sidebar.slideUp(0).attr("data-collapsed", "1");
 		$layout.addClass("sidebar-collapsed");
 
-		// Inject CSS for floating virtual button
-		const styleId = "virtual-sidebar-button-style";
+		// CSS for floating gear button
+		const styleId = "floating-gear-button-style";
 		if (!document.getElementById(styleId)) {
 			$(`<style id="${styleId}">
-				.layout-two-column.sidebar-collapsed .layout-main-section-wrapper {
-					width: 100%;
-				}
-				/* Floating Virtual Button Style */
-				.sidebar-toggle {
+				.floating-gear-btn {
 					position: fixed;
-					bottom: 20px;
-					right: 20px;
+					bottom: 1cm;   /* ارتفاع 1 سم من الأسفل */
+					right: 20px;   /* نفس المسافة من اليمين */
 					width: 50px;
 					height: 50px;
 					border-radius: 50%;
 					background-color: rgba(0, 123, 255, 0.85);
 					color: #fff;
+					font-size: 24px;
 					border: none;
 					box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 					cursor: pointer;
@@ -157,25 +153,19 @@ add_main_section() {
 					justify-content: center;
 					transition: background-color 0.3s ease, transform 0.2s ease;
 				}
-				.sidebar-toggle:hover {
+				.floating-gear-btn:hover {
 					background-color: rgba(0, 123, 255, 1);
 					transform: scale(1.05);
-				}
-				.sidebar-toggle i {
-					font-size: 20px;
 				}
 			</style>`).appendTo(document.head);
 		}
 
-		// ===== Floating toggle button =====
-		const $toggleBtn = $(`
-			<button type="button" class="sidebar-toggle" title="${__('Toggle Sidebar')}">
-				<i class="octicon octicon-sidebar-collapse"></i>
-			</button>
-		`).appendTo("body"); // Append to body so it stays fixed
+		// Floating button ⚙️
+		const $gearBtn = $(`<button type="button" class="floating-gear-btn">⚙️</button>`)
+			.appendTo("body");
 
-		// Toggle behavior
-		$toggleBtn.on("click", () => {
+		// Toggle sidebar on click
+		$gearBtn.on("click", () => {
 			const isHidden = $sidebar.is(":hidden");
 			if (isHidden) {
 				$sidebar.slideDown(150).attr("data-collapsed", "0");
