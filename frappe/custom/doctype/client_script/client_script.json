@@ -13,9 +13,14 @@
   "column_break_3",
   "module",
   "enabled",
+  "script_code_name",
+  "version",
+  "new_version",
   "section_break_6",
   "script",
-  "sample"
+  "sample",
+  "section_break_analytics",
+  "client_script_analytic"
  ],
  "fields": [
   {
@@ -71,6 +76,39 @@
   {
    "fieldname": "section_break_6",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "script_code_name",
+   "fieldtype": "Data",
+   "label": "Script Code Name",
+   "in_list_view": 1,
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "version",
+   "fieldtype": "Data",
+   "label": "Version",
+   "default": "Ver 0.0",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "new_version",
+   "fieldtype": "Button",
+   "label": "Create New Version",
+   "description": "Create a new version of this script"
+  },
+  {
+   "fieldname": "section_break_analytics",
+   "fieldtype": "Section Break",
+   "label": "Script Analytics"
+  },
+  {
+   "fieldname": "client_script_analytic",
+   "fieldtype": "HTML",
+   "label": "Client Script Analytics",
+   "description": "Detailed analysis of the script including complexity, security, and performance metrics"
   }
  ],
  "icon": "fa fa-glass",
