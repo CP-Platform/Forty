@@ -1,8 +1,8 @@
-
 # frappe/frappe/utils/doctype_files.py
 import frappe
 import os
 import json
+import re
 
 
 @frappe.whitelist()
@@ -57,6 +57,215 @@ def check_existing_banner_code(doctypes):
             }
     
     return results
+
+
+@frappe.whitelist()
+def remove_banner_footer_from_files(doctypes, remove_list=True, remove_form=True, delete_empty=False):
+    """
+    Remove banner and footer code from JavaScript files
+    """
+    if isinstance(doctypes, str):
+        doctypes = json.loads(doctypes)
+    if isinstance(remove_list, str):
+        remove_list = json.loads(remove_list)
+    if isinstance(remove_form, str):
+        remove_form = json.loads(remove_form)
+    if isinstance(delete_empty, str):
+        delete_empty = json.loads(delete_empty)
+    
+    results = []
+    
+    for doctype in doctypes:
+        try:
+            doc = frappe.get_doc("DocType", doctype)
+            module_name = doc.module
+            base_path = frappe.get_app_path("frappe")
+            
+            doctype_folder = os.path.join(
+                base_path,
+                frappe.scrub(module_name),
+                "doctype",
+                frappe.scrub(doctype)
+            )
+            
+            result = {
+                "doctype": doctype,
+                "status": "success",
+                "removed_from_list": False,
+                "removed_from_form": False,
+                "deleted_list": False,
+                "deleted_form": False
+            }
+            
+            # Remove from list JS
+            if remove_list:
+                list_js_path = os.path.join(doctype_folder, f"{frappe.scrub(doctype)}_list.js")
+                if os.path.exists(list_js_path):
+                    with open(list_js_path, 'r') as f:
+                        content = f.read()
+                    
+                    if 'custom-smart-banner' in content:
+                        # Check if the file only contains banner/footer code
+                        if is_banner_only_file(content):
+                            if delete_empty:
+                                os.remove(list_js_path)
+                                result["deleted_list"] = True
+                                result["removed_from_list"] = True
+                        else:
+                            # Remove banner and footer functions and calls
+                            cleaned_content = remove_banner_code_from_list_js(content, doctype)
+                            with open(list_js_path, 'w') as f:
+                                f.write(cleaned_content)
+                            result["removed_from_list"] = True
+            
+            # Remove from form JS
+            if remove_form:
+                form_js_path = os.path.join(doctype_folder, f"{frappe.scrub(doctype)}.js")
+                if os.path.exists(form_js_path):
+                    with open(form_js_path, 'r') as f:
+                        content = f.read()
+                    
+                    if 'custom-form-banner' in content:
+                        cleaned_content = remove_banner_code_from_form_js(content, doctype)
+                        
+                        # Check if file is now empty or only has empty frappe.ui.form.on
+                        if is_empty_form_js(cleaned_content) and delete_empty:
+                            os.remove(form_js_path)
+                            result["deleted_form"] = True
+                            result["removed_from_form"] = True
+                        else:
+                            with open(form_js_path, 'w') as f:
+                                f.write(cleaned_content)
+                            result["removed_from_form"] = True
+            
+            results.append(result)
+            
+        except Exception as e:
+            results.append({
+                "doctype": doctype,
+                "status": "error",
+                "error": str(e)
+            })
+    
+    frappe.clear_cache()
+    return results
+
+
+def is_banner_only_file(content):
+    """Check if a list JS file only contains banner/footer code"""
+    # Remove comments and whitespace
+    cleaned = re.sub(r'//.*?\n', '', content)
+    cleaned = re.sub(r'/\*.*?\*/', '', cleaned, flags=re.DOTALL)
+    cleaned = cleaned.strip()
+    
+    # Check if it only contains the banner/footer pattern
+    if not cleaned:
+        return True
+    
+    # Pattern to match the entire banner/footer structure
+    banner_pattern = r'frappe\.listview_settings\[.*?\]\s*=\s*frappe\.listview_settings\[.*?\]\s*\|\|\s*\{\};.*?function\s+add.*?Footer.*?\}[\s\n]*$'
+    
+    if re.match(banner_pattern, cleaned, re.DOTALL):
+        return True
+    
+    return False
+
+
+def is_empty_form_js(content):
+    """Check if form JS is empty or only has empty frappe.ui.form.on"""
+    cleaned = content.strip()
+    if not cleaned:
+        return True
+    
+    # Pattern to match empty frappe.ui.form.on
+    empty_form_pattern = r'^frappe\.ui\.form\.on\([\'"].*?[\'"]\s*,\s*\{\s*\}\s*\);?\s*$'
+    
+    if re.match(empty_form_pattern, cleaned):
+        return True
+    
+    return False
+
+
+def remove_banner_code_from_list_js(content, doctype):
+    """Remove banner and footer code from list JS content"""
+    clean_doctype = doctype.replace(' ', '').replace('-', '')
+    
+    # Remove the banner and footer function definitions
+    patterns_to_remove = [
+        # Remove the entire banner function
+        rf'function\s+addBannerTo{clean_doctype}ListView\s*\(\)\s*\{{[^}}]*\}}[^}}]*\}}',
+        # Remove the entire footer function
+        rf'function\s+addFooterTo{clean_doctype}ListView\s*\(\)\s*\{{[^}}]*\}}[^}}]*\}}',
+        # Remove onload extension that adds banner/footer
+        rf'onload:\s*function\s*\(listview\)\s*\{{\s*addBannerTo{clean_doctype}ListView\(\);\s*addFooterTo{clean_doctype}ListView\(\);\s*\}}',
+        # Remove refresh extension
+        rf'refresh:\s*function\s*\(listview\)\s*\{{[^}}]*addBannerTo{clean_doctype}ListView[^}}]*\}}',
+        # Remove $.extend call if it only contains our functions
+        rf'\$\.extend\s*\(\s*frappe\.listview_settings\[\'{doctype}\'\]\s*,\s*\{{\s*\}}\s*\);?',
+        # Remove style tags
+        r'<style>.*?</style>',
+    ]
+    
+    cleaned_content = content
+    for pattern in patterns_to_remove:
+        cleaned_content = re.sub(pattern, '', cleaned_content, flags=re.DOTALL)
+    
+    # Clean up extra newlines
+    cleaned_content = re.sub(r'\n\s*\n\s*\n', '\n\n', cleaned_content)
+    
+    # Remove the auto-generated comment if nothing else remains
+    if cleaned_content.strip().startswith('// Auto-generated Banner & Footer'):
+        lines = cleaned_content.split('\n')
+        if len(lines) > 1:
+            cleaned_content = '\n'.join(lines[1:])
+    
+    return cleaned_content.strip()
+
+
+def remove_banner_code_from_form_js(content, doctype):
+    """Remove banner and footer code from form JS content"""
+    clean_doctype = doctype.replace(' ', '').replace('-', '')
+    
+    # First, try to remove the banner/footer function calls from onload/refresh
+    # Pattern to match and remove banner/footer calls
+    patterns = [
+        # Remove banner function calls
+        rf'add{clean_doctype}BannerToForm\s*\(\s*frm\s*\)\s*;?\s*\n?',
+        # Remove footer function calls
+        rf'add{clean_doctype}FooterToForm\s*\(\s*frm\s*\)\s*;?\s*\n?',
+    ]
+    
+    cleaned_content = content
+    for pattern in patterns:
+        cleaned_content = re.sub(pattern, '', cleaned_content)
+    
+    # Remove the banner and footer function definitions
+    function_patterns = [
+        # Remove banner function
+        rf'function\s+add{clean_doctype}BannerToForm\s*\([^)]*\)\s*\{{[^}}]*(?:\{{[^}}]*\}}[^}}]*)*\}}',
+        # Remove footer function
+        rf'function\s+add{clean_doctype}FooterToForm\s*\([^)]*\)\s*\{{[^}}]*(?:\{{[^}}]*\}}[^}}]*)*\}}',
+    ]
+    
+    for pattern in function_patterns:
+        cleaned_content = re.sub(pattern, '', cleaned_content, flags=re.DOTALL)
+    
+    # Clean up empty onload/refresh functions
+    # Pattern to match empty function bodies
+    empty_func_pattern = r'(onload|refresh):\s*function\s*\([^)]*\)\s*\{\s*\}'
+    cleaned_content = re.sub(empty_func_pattern, '', cleaned_content)
+    
+    # Remove trailing commas from objects
+    cleaned_content = re.sub(r',(\s*\})', r'\1', cleaned_content)
+    
+    # Clean up extra newlines
+    cleaned_content = re.sub(r'\n\s*\n\s*\n', '\n\n', cleaned_content)
+    
+    # Remove auto-generated comments
+    cleaned_content = re.sub(r'//\s*Auto-generated Banner.*?\n', '', cleaned_content)
+    
+    return cleaned_content.strip()
+
 
 @frappe.whitelist()
 def create_doctype_js_files(doctypes, banner_config, force_overwrite=False):
@@ -154,9 +363,6 @@ def create_doctype_js_files(doctypes, banner_config, force_overwrite=False):
     
     frappe.clear_cache()
     return results
-
-
-
 
 
 def generate_list_js_code(doctype, config):
@@ -282,6 +488,7 @@ function addFooterTo{clean_doctype}ListView() {{
 }}
 """
 
+
 def generate_form_js_code(doctype, config):
     """Generate complete form view JavaScript code"""
     clean_doctype = doctype.replace(' ', '').replace('-', '')
@@ -398,6 +605,7 @@ function add{clean_doctype}FooterToForm(frm) {{
 }}
 """
 
+
 def inject_banner_into_existing_js(existing_content, doctype, config):
     """Inject banner code into existing JavaScript file"""
     clean_doctype = doctype.replace(' ', '').replace('-', '')
@@ -448,6 +656,7 @@ def inject_banner_into_existing_js(existing_content, doctype, config):
     else:
         # No existing form handler, add complete new code
         return existing_content + '\n\n' + generate_form_js_code(doctype, config)
+
 
 def generate_banner_functions(doctype, config):
     """Generate just the banner and footer functions"""
