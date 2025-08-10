@@ -532,34 +532,145 @@ body {
 	}
 
 	&.shortcut-widget-box {
-		cursor: pointer;
-		padding: 10px;
-		border: 1px solid var(--border-color);
+  // Layout & Spacing
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 32px 24px;
+  cursor: pointer;
+  
+  // Visual Design
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbfd 100%);
+  border: 1px solid rgba(45, 110, 175, 0.12);
+  border-radius: 12px;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  
+  // Transitions
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(0);
+  
+  // Hover State
+  &:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, var(--border-color, #2d6eaf) 0%, darken(#2d6eaf, 8%) 100%);
+    border-color: transparent;
+    box-shadow: 
+      0 8px 24px rgba(45, 110, 175, 0.25),
+      0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    
+    // Icon animation
+    --icon-stroke: var(--invert-neutral, #ffffff);
+    
+    .widget-icon {
+      transform: scale(1.05);
+    }
+    
+    .widget-title {
+      color: var(--invert-neutral, #ffffff);
+    }
+    
+    // Optional hover accent
+    &::before {
+      opacity: 1;
+    }
+  }
+  
+  // Active State
+  &:active {
+    transform: translateY(0);
+    box-shadow: 
+      0 2px 8px rgba(45, 110, 175, 0.15),
+      0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  }
+  
+  // Focus State (Accessibility)
+  &:focus-visible {
+    outline: 2px solid var(--border-color, #2d6eaf);
+    outline-offset: 4px;
+  }
+  
+  // Optional gradient overlay for depth
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(180deg, 
+      rgba(255, 255, 255, 0) 0%, 
+      rgba(45, 110, 175, 0.03) 100%
+    );
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  
+  // Icon styling (if you have icons)
+  .widget-icon {
+    transition: transform 0.3s ease;
+    margin-bottom: 12px;
+  }
+  
+  // Title Styling
+  .widget-title {
+    @include get_textstyle("base", "medium");
+    
+    // Typography
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    
+    // Text Wrapping
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+    
+    // Layout
+    width: 100%;
+    margin: 0;
+    
+    // Color & Transitions
+    color: var(--text-primary, #1a1a1a);
+    transition: color 0.3s ease;
+  }
+  
+  // Optional: Add description support
+  .widget-description {
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-secondary, #666);
+    opacity: 0.8;
+    transition: all 0.3s ease;
+  }
+  
+  &:hover .widget-description {
+    color: rgba(255, 255, 255, 0.9);
+    opacity: 1;
+  }
+}
 
-		&:hover {
-			--icon-stroke: var(--invert-neutral);
-			.widget-label .widget-title {
-				color: var(--invert-neutral);
-			}
-			border-color: var(--invert-neutral);
-		}
-
-		.widget-label .widget-title {
-			cursor: pointer;
-			font-size: var(--text-lg);
-		}
-
-		.indicator-pill {
-			font-size: var(--text-xs);
-			@extend .ellipsis;
-		}
-
-		&:focus-visible {
-			text-decoration: underline;
-			background-color: var(--highlight-color);
-			outline: 0;
-		}
-	}
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .shortcut-widget-box {
+    background: linear-gradient(135deg, #1a1f2e 0%, #151922 100%);
+    border-color: rgba(255, 255, 255, 0.08);
+    
+    .widget-title {
+      color: var(--text-primary-dark, #f0f0f0);
+    }
+    
+    &:hover {
+      background: linear-gradient(135deg, var(--border-color, #2d6eaf) 0%, darken(#2d6eaf, 12%) 100%);
+    }
+  }
+}
 
 	&.links-widget-box {
 		.widget-head .widget-label .widget-title svg {
