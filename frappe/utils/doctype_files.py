@@ -40,7 +40,7 @@ def check_existing_banner_code(doctypes):
             if os.path.exists(form_js_path):
                 with open(form_js_path, 'r') as f:
                     content = f.read()
-                    has_form_banner = 'custom-form-banner' in content
+                    has_form_banner = 'x7z9_custom_form_banner' in content
             
             results[doctype] = {
                 'has_list_banner': has_list_banner,
@@ -103,7 +103,7 @@ def create_doctype_js_files(doctypes, banner_config, force_overwrite=False):
             form_has_banner = False
             if os.path.exists(form_js_path):
                 with open(form_js_path, 'r') as f:
-                    form_has_banner = 'custom-form-banner' in f.read()
+                    form_has_banner = 'x7z9_custom_form_banner' in f.read()
             
             # Skip if already has banner and not forcing overwrite
             if (list_has_banner or form_has_banner) and not force_overwrite:
@@ -223,7 +223,7 @@ def remove_banner_footer_from_files(doctypes, remove_list=True, remove_form=True
                     with open(form_js_path, 'r') as f:
                         content = f.read()
                     
-                    if 'custom-form-banner' in content:
+                    if 'x7z9_custom_form_banner' in content:
                         cleaned_content = remove_banner_code_from_form_js(content, doctype)
                         
                         # Check if file is now empty or only has empty frappe.ui.form.on
@@ -327,10 +327,10 @@ def remove_banner_code_from_form_js(content, doctype):
     # First, try to remove the banner/footer function calls from onload/refresh
     # Pattern to match and remove banner/footer calls
     patterns = [
-        # Remove banner function calls
-        rf'add{clean_doctype}BannerToForm\s*\(\s*frm\s*\)\s*;?\s*\n?',
-        # Remove footer function calls
-        rf'add{clean_doctype}FooterToForm\s*\(\s*frm\s*\)\s*;?\s*\n?',
+        # Remove banner function calls with unique names
+        rf'x7z9_add{clean_doctype}BannerToFormView\s*\(\s*frm\s*\)\s*;?\s*\n?',
+        # Remove footer function calls with unique names
+        rf'x7z9_add{clean_doctype}FooterToFormView\s*\(\s*frm\s*\)\s*;?\s*\n?',
     ]
     
     cleaned_content = content
@@ -339,10 +339,10 @@ def remove_banner_code_from_form_js(content, doctype):
     
     # Remove the banner and footer function definitions
     function_patterns = [
-        # Remove banner function
-        rf'function\s+add{clean_doctype}BannerToForm\s*\([^)]*\)\s*\{{[^}}]*(?:\{{[^}}]*\}}[^}}]*)*\}}',
-        # Remove footer function
-        rf'function\s+add{clean_doctype}FooterToForm\s*\([^)]*\)\s*\{{[^}}]*(?:\{{[^}}]*\}}[^}}]*)*\}}',
+        # Remove banner function with unique name
+        rf'function\s+x7z9_add{clean_doctype}BannerToFormView\s*\([^)]*\)\s*\{{[^}}]*(?:\{{[^}}]*\}}[^}}]*)*\}}',
+        # Remove footer function with unique name
+        rf'function\s+x7z9_add{clean_doctype}FooterToFormView\s*\([^)]*\)\s*\{{[^}}]*(?:\{{[^}}]*\}}[^}}]*)*\}}',
     ]
     
     for pattern in function_patterns:
@@ -408,7 +408,8 @@ function addBannerTo{clean_doctype}ListView() {{
                 font-size: 18px;
                 font-weight: 600;
                 border-radius: 8px;
-                margin: 15px 0 20px 0;
+                margin: 15px auto 20px auto;
+                max-width: 95%;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                 animation: slideIn 0.3s ease-out;
             ">
@@ -452,7 +453,8 @@ function addFooterTo{clean_doctype}ListView() {{
                 background: linear-gradient(90deg, #f8f9fa, #e9ecef);
                 border-top: 2px solid #2d6eaf;
                 padding: 20px 24px;
-                margin: 20px 0 0 0;
+                margin: 20px auto 0 auto;
+                max-width: 95%;
                 border-radius: 8px;
                 box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
             ">
@@ -490,22 +492,22 @@ function addFooterTo{clean_doctype}ListView() {{
 
 
 def generate_form_js_code(doctype, config):
-    """Generate complete form view JavaScript code"""
+    """Generate complete form view JavaScript code with unique function names"""
     clean_doctype = doctype.replace(' ', '').replace('-', '')
     
     return f"""frappe.ui.form.on('{doctype}', {{
     onload: function(frm) {{
-        add{clean_doctype}BannerToForm(frm);
-        add{clean_doctype}FooterToForm(frm);
+        x7z9_add{clean_doctype}BannerToFormView(frm);
+        x7z9_add{clean_doctype}FooterToFormView(frm);
     }},
     refresh: function(frm) {{
-        add{clean_doctype}BannerToForm(frm);
-        add{clean_doctype}FooterToForm(frm);
+        x7z9_add{clean_doctype}BannerToFormView(frm);
+        x7z9_add{clean_doctype}FooterToFormView(frm);
     }}
 }});
 
-function add{clean_doctype}BannerToForm(frm) {{
-    $('.custom-form-banner').remove();
+function x7z9_add{clean_doctype}BannerToFormView(frm) {{
+    $('.x7z9-custom-form-banner').remove();
     
     const itemName = frm.doc.name || 'New ' + frm.doctype;
     const isNew = frm.is_new();
@@ -522,14 +524,15 @@ function add{clean_doctype}BannerToForm(frm) {{
     }}
     
     const banner = `
-        <div class="custom-form-banner" style="
+        <div class="x7z9-custom-form-banner" style="
             background: {config.get('gradient', 'linear-gradient(90deg, #2d6eaf, #51a8f9)')};
             color: white;
             padding: 20px 24px;
             font-size: 18px;
             font-weight: 600;
             border-radius: 8px;
-            margin: -5px -20px 20px -20px;
+            margin: -5px auto 20px auto;
+            max-width: 95%;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             animation: slideIn 0.3s ease-out;
         ">
@@ -554,17 +557,18 @@ function add{clean_doctype}BannerToForm(frm) {{
     $(frm.wrapper).find('.layout-main-section').prepend(banner);
 }}
 
-function add{clean_doctype}FooterToForm(frm) {{
-    $('.custom-form-footer').remove();
+function x7z9_add{clean_doctype}FooterToFormView(frm) {{
+    $('.x7z9-custom-form-footer').remove();
     
     const isNew = frm.is_new();
     
     const footer = `
-        <div class="custom-form-footer" style="
+        <div class="x7z9-custom-form-footer" style="
             background: linear-gradient(90deg, #f8f9fa, #e9ecef);
             border-top: 2px solid #2d6eaf;
             padding: 24px;
-            margin: 20px -20px -20px -20px;
+            margin: 20px auto -20px auto;
+            max-width: 95%;
             border-radius: 0 0 8px 8px;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
         ">
@@ -607,7 +611,7 @@ function add{clean_doctype}FooterToForm(frm) {{
 
 
 def inject_banner_into_existing_js(existing_content, doctype, config):
-    """Inject banner code into existing JavaScript file"""
+    """Inject banner code into existing JavaScript file with unique function names"""
     clean_doctype = doctype.replace(' ', '').replace('-', '')
     
     # Check if the file already has frappe.ui.form.on
@@ -639,8 +643,8 @@ def inject_banner_into_existing_js(existing_content, doctype, config):
                     # Insert our banner call before the closing brace
                     if j > 0:
                         indent = '\t\t'
-                        new_lines.insert(len(new_lines) - 1, f"{indent}add{clean_doctype}BannerToForm(frm);")
-                        new_lines.insert(len(new_lines) - 1, f"{indent}add{clean_doctype}FooterToForm(frm);")
+                        new_lines.insert(len(new_lines) - 1, f"{indent}x7z9_add{clean_doctype}BannerToFormView(frm);")
+                        new_lines.insert(len(new_lines) - 1, f"{indent}x7z9_add{clean_doctype}FooterToFormView(frm);")
                 
                 if brace_count == 0:
                     inside_form_on = False
@@ -659,12 +663,12 @@ def inject_banner_into_existing_js(existing_content, doctype, config):
 
 
 def generate_banner_functions(doctype, config):
-    """Generate just the banner and footer functions"""
+    """Generate just the banner and footer functions with unique names"""
     clean_doctype = doctype.replace(' ', '').replace('-', '')
     
     return f"""
-function add{clean_doctype}BannerToForm(frm) {{
-    $('.custom-form-banner').remove();
+function x7z9_add{clean_doctype}BannerToFormView(frm) {{
+    $('.x7z9-custom-form-banner').remove();
     
     const itemName = frm.doc.name || 'New ' + frm.doctype;
     const isNew = frm.is_new();
@@ -681,14 +685,15 @@ function add{clean_doctype}BannerToForm(frm) {{
     }}
     
     const banner = `
-        <div class="custom-form-banner" style="
+        <div class="x7z9-custom-form-banner" style="
             background: {config.get('gradient', 'linear-gradient(90deg, #2d6eaf, #51a8f9)')};
             color: white;
             padding: 20px 24px;
             font-size: 18px;
             font-weight: 600;
             border-radius: 8px;
-            margin: -5px -20px 20px -20px;
+            margin: -5px auto 20px auto;
+            max-width: 95%;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             animation: slideIn 0.3s ease-out;
         ">
@@ -713,17 +718,18 @@ function add{clean_doctype}BannerToForm(frm) {{
     $(frm.wrapper).find('.layout-main-section').prepend(banner);
 }}
 
-function add{clean_doctype}FooterToForm(frm) {{
-    $('.custom-form-footer').remove();
+function x7z9_add{clean_doctype}FooterToFormView(frm) {{
+    $('.x7z9-custom-form-footer').remove();
     
     const isNew = frm.is_new();
     
     const footer = `
-        <div class="custom-form-footer" style="
+        <div class="x7z9-custom-form-footer" style="
             background: linear-gradient(90deg, #f8f9fa, #e9ecef);
             border-top: 2px solid #2d6eaf;
             padding: 24px;
-            margin: 20px -20px -20px -20px;
+            margin: 20px auto -20px auto;
+            max-width: 95%;
             border-radius: 0 0 8px 8px;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
         ">
