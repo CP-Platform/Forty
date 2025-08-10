@@ -81,43 +81,110 @@ frappe.ui.Page = class Page {
 		frappe.require(this.required_libs, callback);
 	}
 
-	add_main_section() {
-		$(frappe.render_template("page", {})).appendTo(this.wrapper);
-		if (this.single_column) {
-			// nesting under col-sm-12 for consistency
-			this.add_view(
-				"main",
-				'<div class="layout-main">\
-					<div class="layout-main-section-wrapper">\
-						<div class="layout-main-section"></div>\
-						<div class="layout-footer hide"></div>\
-					</div>\
-				</div>'
-			);
-		} else {
-			this.add_view(
-				"main",
-				`
-				<div class="layout-main layout-two-column">
-					<div class="layout-side-section"></div>
-					<div class="layout-main-section-wrapper">
-						<div class="layout-main-section"></div>
-						<div class="layout-footer hide"></div>
-					</div>
-				</div>
-			`
-			);
+add_main_section() {
+	// Render base page wrapper
+	$(frappe.render_template("page", {})).appendTo(this.wrapper);
 
-			if (this.sidebar_position === "Right") {
-				this.wrapper
-					.find(".layout-main-section-wrapper")
-					.insertBefore(this.wrapper.find(".layout-side-section"));
-				this.wrapper.find(".layout-side-section").addClass("right");
-			}
+	if (this.single_column) {
+		// One-column layout
+		this.add_view(
+			"main",
+			'<div class="layout-main">\
+				<div class="layout-main-section-wrapper">\
+					<div class="layout-main-section"></div>\
+					<div class="layout-footer hide"></div>\
+				</div>\
+			</div>'
+		);
+	} else {
+		// Two-column layout (with sidebar)
+		this.add_view(
+			"main",
+			`
+			<div class="layout-main layout-two-column">
+				<div class="layout-side-section"></div>
+				<div class="layout-main-section-wrapper">
+					<div class="layout-main-section"></div>
+					<div class="layout-footer hide"></div>
+				</div>
+			</div>
+		`
+		);
+
+		// If sidebar should be on the Right, move it and add class
+		if (this.sidebar_position === "Right") {
+			this.wrapper
+				.find(".layout-main-section-wrapper")
+				.insertBefore(this.wrapper.find(".layout-side-section"));
+			this.wrapper.find(".layout-side-section").addClass("right");
 		}
 
-		this.setup_page();
+		// ===== Auto-collapse on load | طيّ الشريط الجانبي تلقائيًا عند التحميل =====
+		const $layout   = this.wrapper.find(".layout-main.layout-two-column");
+		const $sidebar  = this.wrapper.find(".layout-side-section");
+
+		// ابدأ مطويًا بدون أنيميشن ثم جاهز للفتح بانسيابية لاحقًا
+		$sidebar.slideUp(0).attr("data-collapsed", "1");
+		$layout.addClass("sidebar-collapsed");
+
+		// حقن CSS بسيط لتوسيع المساحة الرئيسية عند طيّ الشريط
+		// (في معظم ثيمات Frappe الـ flex كافي، لكن هذا يضمن العرض الكامل)
+		const styleId = "auto-collapse-sidebar-style";
+		if (!document.getElementById(styleId)) {
+			$(`<style id="${styleId}">
+				.layout-two-column.sidebar-collapsed .layout-main-section-wrapper {
+					width: 100%;
+				}
+				/* اختياري: تقليل الحد الفاصل عندما يكون مطوي */
+				.layout-two-column.sidebar-collapsed .layout-main-section-wrapper {
+					border-left: none;
+				}
+				/* زر التبديل الصغير */
+				.sidebar-toggle {
+					position: absolute;
+					top: 10px;
+					/* إذا كانت يمين: ضع الزر يسار قليلًا والعكس */
+					right: 10px;
+					z-index: 2;
+				}
+				/* لو كانت الـ sidebar يسار، انقل الزر لليسار */
+				.layout-two-column:not(.sidebar-right) .sidebar-toggle { left: 10px; right: auto; }
+				/* اجعل الحاوية نسبية لتثبيت الزر */
+				.layout-main { position: relative; }
+			</style>`).appendTo(document.head);
+		}
+
+		// ضع class مساعد يوضح أن الشريط على اليمين (لأجل CSS أعلاه)
+		if (this.sidebar_position === "Right") {
+			$layout.addClass("sidebar-right");
+		}
+
+		// ===== (اختياري) زر تبديل فتح/إغلاق | Toggle button =====
+		// زر صغير أعلى الصفحة لفتح/طيّ الشريط الجانبي
+		const $toggleBtn = $(`
+			<button type="button" class="btn btn-default btn-xs sidebar-toggle"
+					title="${__('Toggle sidebar')}">
+				<i class="octicon octicon-sidebar-collapse"></i>
+				<span class="hidden-xs">${__('Sidebar')}</span>
+			</button>
+		`).appendTo(this.wrapper.find(".layout-main"));
+
+		// سلوك التبديل
+		$toggleBtn.on("click", () => {
+			const isHidden = $sidebar.is(":hidden");
+			if (isHidden) {
+				$sidebar.slideDown(150).attr("data-collapsed", "0");
+				$layout.removeClass("sidebar-collapsed");
+			} else {
+				$sidebar.slideUp(150).attr("data-collapsed", "1");
+				$layout.addClass("sidebar-collapsed");
+			}
+		});
 	}
+
+	this.setup_page();
+}
+
 
 	setup_page() {
 		this.$title_area = this.wrapper.find(".title-area");
