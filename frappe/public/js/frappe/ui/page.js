@@ -165,7 +165,7 @@ add_main_section() {
 			<button type="button" class="btn btn-default btn-xs sidebar-toggle"
 					title="${__('Toggle sidebar')}">
 				<i class="octicon octicon-sidebar-collapse"></i>
-				<span class="hidden-xs">${__('Sidebar')}</span>
+				<span class="hidden-xs">${__('⚙️')}</span>
 			</button>
 		`).appendTo(this.wrapper.find(".layout-main"));
 
