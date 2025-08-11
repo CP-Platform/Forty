@@ -218,14 +218,14 @@ function addBannerTo{clean_doctype}ListView() {{
                 font-weight: 600;
                 border-radius: 8px;
                 margin: 15px auto 20px auto;
-                max-width: 98%;
+                max-width: 97%;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                 animation: slideIn 0.3s ease-out;
             ">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <div>
                         <i class="fa {config.get('icon', 'fa-list')}" style="margin-right: 12px; font-size: 24px;"></i>
-                        {config.get('title', 'LIST VIEW : ')} ${{doctypeName}}
+                        {config.get('title', '# ')} ${{doctypeName}}
                     </div>
                     <div>
                         <span class="badge badge-light count-badge-{clean_doctype}" style="font-size: 14px; padding: 6px 12px;">
@@ -266,8 +266,8 @@ function addFooterTo{clean_doctype}ListView() {{
                 background: linear-gradient(90deg, #f8f9fa, #e9ecef);
                 border-top: 2px solid #2d6eaf;
                 padding: 20px 24px;
-                margin: 20px auto 40px auto;
-                max-width: 98%;
+                margin: 20px auto 100px auto;
+                max-width: 97%;
                 border-radius: 8px;
                 box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
             ">
@@ -349,8 +349,8 @@ function add{clean_doctype}BannerToForm(frm) {{
                 font-size: 18px;
                 font-weight: 600;
                 border-radius: 8px;
-                max-width: 98%;
-                width: 100%;
+                margin: 15px auto 20px auto;
+                max-width: 97%;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                 animation: slideIn 0.3s ease-out;
             ">
@@ -361,7 +361,7 @@ function add{clean_doctype}BannerToForm(frm) {{
                             <div style="font-size: 20px; font-weight: 600;">
                                 ${{isNew ? 'Create New {doctype}' : itemName}}
                             </div>
-                            ${{!isNew ? '<div style="font-size: 14px; opacity: 0.9; margin-top: 2px;">{doctype} Configuration</div>' : ''}}
+                            ${{!isNew ? '<div style="font-size: 8px; opacity: 0.9; margin-top: 2px;">{doctype} Configuration</div>' : ''}}
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -391,7 +391,7 @@ function add{clean_doctype}FooterToForm(frm) {{
     const footerWrapper = `
         <div class="custom-form-footer-wrapper" style="
             margin: 20px -20px -20px -20px;
-            padding-bottom: 40px;
+            padding-bottom: 100px;
             display: flex;
             justify-content: center;
         ">
@@ -399,8 +399,7 @@ function add{clean_doctype}FooterToForm(frm) {{
                 background: linear-gradient(90deg, #f8f9fa, #e9ecef);
                 border-top: 2px solid #2d6eaf;
                 padding: 24px;
-                max-width: 98%;
-                width: 100%;
+                max-width: 97%;
                 border-radius: 8px;
                 box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
             ">
@@ -415,13 +414,13 @@ function add{clean_doctype}FooterToForm(frm) {{
                                 Enterprise Management System
                             </div>
                             <div style="font-size: 11px; color: #999; margin-top: 2px;">
-                                © ${{new Date().getFullYear()}} All rights reserved
+                                © ${{new Date().getFullYear()}} ✉️ hello@capital-project.io
                             </div>
                         </div>
                     </div>
                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
                         ${{!isNew ? `
-                            <div style="font-size: 12px; color: #666; text-align: right;">
+                            <div style="font-size: 8px; color: #666; text-align: right;">
                                 <div>Last Modified: ${{frappe.datetime.prettyDate(frm.doc.modified)}}</div>
                                 <div>By: ${{frm.doc.modified_by}}</div>
                             </div>
