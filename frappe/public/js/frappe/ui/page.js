@@ -122,46 +122,43 @@ add_main_section() {
 
 		const $layout  = this.wrapper.find(".layout-main.layout-two-column");
 		const $sidebar = this.wrapper.find(".layout-side-section");
+
+		// إخفاء الشريط عند التحميل
 		$sidebar.slideUp(0).attr("data-collapsed", "1");
 		$layout.addClass("sidebar-collapsed");
 
-		// CSS بسيط للزر
-		const styleId = "vertical-sidebar-toggle-style";
+		// CSS لمنطقة اللمس على اليمين
+		const styleId = "sidebar-hover-zone-style";
 		if (!document.getElementById(styleId)) {
 			$(`<style id="${styleId}">
-				.vertical-sidebar-toggle {
+				.sidebar-hover-zone {
 					position: fixed;
-					top: 50%;
+					top: 0;
 					right: 0;
-					transform: translateY(-50%);
-					writing-mode: vertical-rl;
-					text-orientation: mixed;
-					font-size: 12px;
-					padding: 4px;
-					background: none;
-					color: inherit;
-					border: none;
-					cursor: pointer;
+					width: 5px;  /* عرض صغير */
+					height: 100%;
+					background: transparent; /* منطقة شفافة */
 					z-index: 9999;
-				}
-				.vertical-sidebar-toggle:hover {
-					text-decoration: underline;
+					cursor: pointer;
 				}
 			</style>`).appendTo(document.head);
 		}
 
-		// الزر يظهر فقط إذا فيه Sidebar وكنا في Form أو List
-		const route = frappe.get_route();
-		if ($sidebar.length && (route[0] === "Form" || route[0] === "List")) {
-			const $btn = $(`<button type="button" class="vertical-sidebar-toggle">Sidebar</button>`)
-				.appendTo("body");
+		// إنشاء منطقة اللمس
+		if ($sidebar.length) {
+			const $hoverZone = $(`<div class="sidebar-hover-zone"></div>`).appendTo("body");
 
-			$btn.on("click", () => {
-				const isHidden = $sidebar.is(":hidden");
-				if (isHidden) {
+			// عند دخول الماوس تفتح
+			$hoverZone.on("mouseenter", () => {
+				if ($sidebar.is(":hidden")) {
 					$sidebar.slideDown(150).attr("data-collapsed", "0");
 					$layout.removeClass("sidebar-collapsed");
-				} else {
+				}
+			});
+
+			// عند الخروج من الماوس من الشريط نفسه أو المنطقة تغلق
+			$sidebar.on("mouseleave", () => {
+				if (!$sidebar.is(":hidden")) {
 					$sidebar.slideUp(150).attr("data-collapsed", "1");
 					$layout.addClass("sidebar-collapsed");
 				}
@@ -171,6 +168,7 @@ add_main_section() {
 
 	this.setup_page();
 }
+
 
 
 
