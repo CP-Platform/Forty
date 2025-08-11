@@ -6,6 +6,9 @@ export default class ShortcutWidget extends Widget {
 	constructor(opts) {
 		opts.shadow = true;
 		super(opts);
+
+		// Add description after rendering
+		this.add_description();
 	}
 
 	get_config() {
@@ -13,6 +16,7 @@ export default class ShortcutWidget extends Widget {
 			name: this.name,
 			icon: this.icon,
 			label: this.label,
+			description: this.description || "", // <-- add description property
 			format: this.format,
 			link_to: this.link_to,
 			doc_view: this.doc_view,
@@ -25,16 +29,30 @@ export default class ShortcutWidget extends Widget {
 		};
 	}
 
+	add_description() {
+		// Find the label container inside widget
+		const label_el = this.widget.find(".widget-label");
+
+		if (label_el.length && this.description) {
+			// Separator line
+			$('<hr style="border: none; border-top: 1px solid #e0e0e0; margin: 4px 0;">')
+				.insertAfter(label_el);
+
+			// Description text
+			$(`<div class="shortcut-description" 
+					style="font-size: 11px; color: #666; line-height: 1.4;">
+					${frappe.utils.escape_html(this.description)}
+				</div>`)
+				.insertAfter(label_el.next());
+		}
+	}
+
 	setup_events() {
 		this.widget.click((e) => {
 			if (this.in_customize_mode) return;
 
 			if (this.type == "DocType" && this.doc_view == "New") {
-				frappe.ui.form.make_quick_entry(
-					this.link_to,
-					// Callback to ensure no redirection after insert
-					() => {}
-				);
+				frappe.ui.form.make_quick_entry(this.link_to, () => {});
 				return;
 			}
 
