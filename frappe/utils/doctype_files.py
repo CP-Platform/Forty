@@ -178,8 +178,8 @@ frappe.listview_settings['{doctype}'].onload = function(listview) {{
         original_onload.call(this, listview);
     }}
     
-    addBannerTo{clean_doctype}ListView();
-    addFooterTo{clean_doctype}ListView();
+    X7Z9_Banner_{clean_doctype}_Q4K2_ListView();
+    Y3M8_Footer_{clean_doctype}_P5N1_ListView();
 }};
 
 frappe.listview_settings['{doctype}'].refresh = function(listview) {{
@@ -189,14 +189,14 @@ frappe.listview_settings['{doctype}'].refresh = function(listview) {{
     }}
     
     if (!$('.custom-smart-banner').length) {{
-        addBannerTo{clean_doctype}ListView();
+        X7Z9_Banner_{clean_doctype}_Q4K2_ListView();
     }}
     if (!$('.custom-list-footer').length) {{
-        addFooterTo{clean_doctype}ListView();
+        Y3M8_Footer_{clean_doctype}_P5N1_ListView();
     }}
 }};
 
-function addBannerTo{clean_doctype}ListView() {{
+function X7Z9_Banner_{clean_doctype}_Q4K2_ListView() {{
     frappe.after_ajax(() => {{
         $('.page-head h1.page-title').hide();
         $('.list-header h3').hide();
@@ -227,7 +227,7 @@ function addBannerTo{clean_doctype}ListView() {{
                         <i class="fa {config.get('icon', 'fa-list')}" style="margin-right: 12px; font-size: 24px;"></i>
                         {config.get('title', '# ')} ${{doctypeName}}
                     </div>
-                    <div>
+                    <div class="banner-actions">
                         <span class="badge badge-light count-badge-{clean_doctype}" style="font-size: 14px; padding: 6px 12px;">
                             ${{count}} ${{doctypeName}}s
                         </span>
@@ -247,6 +247,21 @@ function addBannerTo{clean_doctype}ListView() {{
                     display: flex;
                     justify-content: center;
                 }}
+                
+                /* Mobile responsive styles */
+                @media (max-width: 768px) {{
+                    .custom-smart-banner {{
+                        font-size: 16px !important;
+                        padding: 15px 16px !important;
+                    }}
+                    .custom-smart-banner .fa {{
+                        font-size: 20px !important;
+                    }}
+                    .banner-actions .badge {{
+                        font-size: 12px !important;
+                        padding: 4px 8px !important;
+                    }}
+                }}
             </style>
         `;
         
@@ -257,7 +272,7 @@ function addBannerTo{clean_doctype}ListView() {{
     }});
 }}
 
-function addFooterTo{clean_doctype}ListView() {{
+function Y3M8_Footer_{clean_doctype}_P5N1_ListView() {{
     frappe.after_ajax(() => {{
         $('.custom-list-footer').remove();
         
@@ -283,7 +298,7 @@ function addFooterTo{clean_doctype}ListView() {{
                             </div>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 15px; align-items: center;">
+                    <div class="footer-actions" style="display: flex; gap: 15px; align-items: center;">
                         <button class="btn btn-sm btn-default" onclick="frappe.set_route('List', '{doctype}', {{}})">
                             <i class="fa fa-refresh"></i> Refresh
                         </button>
@@ -293,6 +308,21 @@ function addFooterTo{clean_doctype}ListView() {{
                     </div>
                 </div>
             </div>
+            
+            <style>
+                /* Mobile responsive styles */
+                @media (max-width: 768px) {{
+                    .custom-list-footer {{
+                        padding: 15px 16px !important;
+                    }}
+                    .custom-list-footer img {{
+                        height: 32px !important;
+                    }}
+                    .custom-list-footer .footer-actions {{
+                        display: none !important;
+                    }}
+                }}
+            </style>
         `;
         
         const mainSection = cur_list.$page.find('.layout-main-section');
@@ -310,17 +340,17 @@ def generate_form_view_script(doctype, config):
     return f"""// Auto-generated Banner & Footer for {doctype} Form View
 frappe.ui.form.on('{doctype}', {{
     onload: function(frm) {{
-        add{clean_doctype}BannerToForm(frm);
-        add{clean_doctype}FooterToForm(frm);
+        A9B3_{clean_doctype}_Banner_K6T8_Form(frm);
+        C5D2_{clean_doctype}_Footer_L8W4_Form(frm);
     }},
     refresh: function(frm) {{
-        add{clean_doctype}BannerToForm(frm);
-        add{clean_doctype}FooterToForm(frm);
+        A9B3_{clean_doctype}_Banner_K6T8_Form(frm);
+        C5D2_{clean_doctype}_Footer_L8W4_Form(frm);
     }}
 }});
 
-function add{clean_doctype}BannerToForm(frm) {{
-    $('.custom-form-banner-wrapper').remove();
+function A9B3_{clean_doctype}_Banner_K6T8_Form(frm) {{
+    $('.custom-form-banner').remove();
     
     const itemName = frm.doc.name || 'New ' + frm.doctype;
     const isNew = frm.is_new();
@@ -336,38 +366,32 @@ function add{clean_doctype}BannerToForm(frm) {{
         }}
     }}
     
-    const bannerWrapper = `
-        <div class="custom-form-banner-wrapper" style="
-            margin: -5px -20px 20px -20px;
-            display: flex;
-            justify-content: center;
+    const banner = `
+        <div class="custom-form-banner" style="
+            background: {config.get('gradient', 'linear-gradient(90deg, #2d6eaf, #51a8f9)')};
+            color: white;
+            padding: 20px 24px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 8px;
+            margin: 15px auto 20px auto;
+            max-width: 97%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease-out;
         ">
-            <div class="custom-form-banner" style="
-                background: {config.get('gradient', 'linear-gradient(90deg, #2d6eaf, #51a8f9)')};
-                color: white;
-                padding: 20px 24px;
-                font-size: 18px;
-                font-weight: 600;
-                border-radius: 8px;
-                margin: 15px auto 20px auto;
-                max-width: 97%;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                animation: slideIn 0.3s ease-out;
-            ">
-                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
-                    <div style="display: flex; align-items: center;">
-                        <i class="fa {config.get('icon', 'fa-list')}" style="margin-right: 12px; font-size: 24px;"></i>
-                        <div>
-                            <div style="font-size: 20px; font-weight: 600;">
-                                ${{isNew ? 'Create New {doctype}' : itemName}}
-                            </div>
-                            ${{!isNew ? '<div style="font-size: 8px; opacity: 0.9; margin-top: 2px;">{doctype} Configuration</div>' : ''}}
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                <div style="display: flex; align-items: center;">
+                    <i class="fa {config.get('icon', 'fa-list')}" style="margin-right: 12px; font-size: 24px;"></i>
+                    <div>
+                        <div style="font-size: 20px; font-weight: 600;">
+                            ${{isNew ? 'Create New {doctype}' : itemName}}
                         </div>
+                        ${{!isNew ? '<div style="font-size: 14px; opacity: 0.9; margin-top: 2px;">{doctype} Configuration</div>' : ''}}
                     </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        ${{statusBadge}}
-                        ${{!isNew ? `<button class="btn btn-light btn-sm" onclick="cur_frm.print_doc()"><i class="fa fa-print"></i> Print</button>` : ''}}
-                    </div>
+                </div>
+                <div class="form-banner-actions" style="display: flex; align-items: center; gap: 10px;">
+                    ${{statusBadge}}
+                    ${{!isNew ? `<button class="btn btn-light btn-sm print-btn" onclick="cur_frm.print_doc()"><i class="fa fa-print"></i> Print</button>` : ''}}
                 </div>
             </div>
         </div>
@@ -377,65 +401,108 @@ function add{clean_doctype}BannerToForm(frm) {{
                 from {{ opacity: 0; transform: translateY(-20px); }}
                 to {{ opacity: 1; transform: translateY(0); }}
             }}
+            
+            /* Mobile responsive styles */
+            @media (max-width: 768px) {{
+                .custom-form-banner {{
+                    font-size: 16px !important;
+                    padding: 15px 16px !important;
+                }}
+                .custom-form-banner .fa {{
+                    font-size: 20px !important;
+                }}
+                .custom-form-banner > div > div:first-child > div:first-child {{
+                    font-size: 18px !important;
+                }}
+                .custom-form-banner > div > div:first-child > div:last-child {{
+                    font-size: 12px !important;
+                }}
+                .form-banner-actions .print-btn {{
+                    display: none !important;
+                }}
+                .form-banner-actions .badge {{
+                    font-size: 12px !important;
+                    padding: 4px 8px !important;
+                }}
+            }}
         </style>
     `;
     
-    $(frm.wrapper).find('.layout-main-section').prepend(bannerWrapper);
+    $(frm.wrapper).find('.layout-main-section').prepend(banner);
 }}
 
-function add{clean_doctype}FooterToForm(frm) {{
-    $('.custom-form-footer-wrapper').remove();
+function C5D2_{clean_doctype}_Footer_L8W4_Form(frm) {{
+    $('.custom-form-footer').remove();
     
     const isNew = frm.is_new();
     
-    const footerWrapper = `
-        <div class="custom-form-footer-wrapper" style="
-            margin: 20px -20px -20px -20px;
-            padding-bottom: 100px;
-            display: flex;
-            justify-content: center;
+    const footer = `
+        <div class="custom-form-footer" style="
+            background: linear-gradient(90deg, #f8f9fa, #e9ecef);
+            border-top: 2px solid #2d6eaf;
+            padding: 24px;
+            margin: 20px auto 100px auto;
+            max-width: 97%;
+            border-radius: 8px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
         ">
-            <div class="custom-form-footer" style="
-                background: linear-gradient(90deg, #f8f9fa, #e9ecef);
-                border-top: 2px solid #2d6eaf;
-                padding: 24px;
-                max-width: 97%;
-                border-radius: 8px;
-                box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-            ">
-                <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 20px;">
-                        <img src="{config.get('logo_path', '/files/logo.png')}" alt="Company Logo" style="height: 45px; width: auto;">
-                        <div>
-                            <div style="font-size: 16px; color: #2d6eaf; font-weight: 600;">
-                                {config.get('company_name', 'Your Company')}
-                            </div>
-                            <div style="font-size: 13px; color: #666;">
-                                Enterprise Management System
-                            </div>
-                            <div style="font-size: 11px; color: #999; margin-top: 2px;">
-                                © ${{new Date().getFullYear()}} ✉️ hello@capital-project.io
-                            </div>
+            <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <img src="{config.get('logo_path', '/files/logo.png')}" alt="Company Logo" style="height: 45px; width: auto;">
+                    <div>
+                        <div style="font-size: 16px; color: #2d6eaf; font-weight: 600;">
+                            {config.get('company_name', 'Your Company')}
+                        </div>
+                        <div style="font-size: 13px; color: #666;">
+                            Enterprise Management System
+                        </div>
+                        <div style="font-size: 11px; color: #999; margin-top: 2px;">
+                            © ${{new Date().getFullYear()}} ✉️ hello@capital-project.io
                         </div>
                     </div>
-                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
-                        ${{!isNew ? `
-                            <div style="font-size: 8px; color: #666; text-align: right;">
-                                <div>Last Modified: ${{frappe.datetime.prettyDate(frm.doc.modified)}}</div>
-                                <div>By: ${{frm.doc.modified_by}}</div>
-                            </div>
-                        ` : ''}}
-                        <div style="display: flex; gap: 10px;">
-                            <button class="btn btn-sm btn-default" onclick="frappe.set_route('List', '{doctype}')">
-                                <i class="fa fa-list"></i> Back to List
-                            </button>
-                            ${{!isNew ? `<button class="btn btn-sm btn-info" onclick="frappe.new_doc('{doctype}')"><i class="fa fa-plus"></i> New {doctype}</button>` : ''}}
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+                    ${{!isNew ? `
+                        <div class="modified-info" style="font-size: 12px; color: #666; text-align: right;">
+                            <div>Last Modified: ${{frappe.datetime.prettyDate(frm.doc.modified)}}</div>
+                            <div>By: ${{frm.doc.modified_by}}</div>
                         </div>
+                    ` : ''}}
+                    <div class="form-footer-actions" style="display: flex; gap: 10px;">
+                        <button class="btn btn-sm btn-default back-to-list-btn" onclick="frappe.set_route('List', '{doctype}')">
+                            <i class="fa fa-list"></i> Back to List
+                        </button>
+                        ${{!isNew ? `<button class="btn btn-sm btn-info new-doc-btn" onclick="frappe.new_doc('{doctype}')"><i class="fa fa-plus"></i> New {doctype}</button>` : ''}}
                     </div>
                 </div>
             </div>
         </div>
+        
+        <style>
+            /* Mobile responsive styles */
+            @media (max-width: 768px) {{
+                .custom-form-footer {{
+                    padding: 15px 16px !important;
+                }}
+                .custom-form-footer > div {{
+                    grid-template-columns: 1fr !important;
+                }}
+                .custom-form-footer img {{
+                    height: 35px !important;
+                }}
+                .custom-form-footer .modified-info {{
+                    display: none !important;
+                }}
+                .form-footer-actions .new-doc-btn {{
+                    display: none !important;
+                }}
+                .custom-form-footer > div > div:last-child {{
+                    align-items: flex-start !important;
+                    margin-top: 10px;
+                }}
+            }}
+        </style>
     `;
     
-    $(frm.wrapper).find('.layout-main-section').append(footerWrapper);
+    $(frm.wrapper).find('.layout-main-section').append(footer);
 }}"""
