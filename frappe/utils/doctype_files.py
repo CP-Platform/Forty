@@ -206,7 +206,7 @@ function addBannerTo{clean_doctype}ListView() {{
         const doctypeName = cur_list.doctype || '{doctype}';
         
         frappe.db.count(doctypeName).then(total => {{
-            $('.count-badge-{clean_doctype}').html(`${{count}} of ${{total}} ${{doctypeName}}s`);
+            $('.count-badge-{clean_doctype}').html(`${{count}} of ${{total}}`);
         }});
         
         const banner = `
@@ -217,18 +217,20 @@ function addBannerTo{clean_doctype}ListView() {{
                 font-size: 18px;
                 font-weight: 600;
                 border-radius: 8px;
-                margin: 15px 0 20px 0;
+                margin: 15px -20px 20px -20px;
+                width: calc(100% + 40px);
+                max-width: none;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                 animation: slideIn 0.3s ease-out;
             ">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <div>
-                        <i class="fa {config.get('icon', 'fa-list')}" style="margin-right: 12px; font-size: 24px;"></i>
-                        {config.get('title', 'LIST VIEW : ')} ${{doctypeName}}
+                <div class="banner-content" style="display: flex; align-items: center; justify-content: space-between;">
+                    <div class="banner-title" style="display: flex; align-items: center;">
+                        <i class="fa {config.get('icon', 'fa-list')} banner-icon" style="margin-right: 12px; font-size: 24px;"></i>
+                        <span class="banner-text">{config.get('title', 'LIST VIEW : ')} ${{doctypeName}}</span>
                     </div>
-                    <div>
+                    <div class="banner-badge">
                         <span class="badge badge-light count-badge-{clean_doctype}" style="font-size: 14px; padding: 6px 12px;">
-                            ${{count}} ${{doctypeName}}s
+                            ${{count}} of ${{total}}
                         </span>
                     </div>
                 </div>
@@ -241,6 +243,35 @@ function addBannerTo{clean_doctype}ListView() {{
                 }}
                 [data-doctype="{doctype}"] .list-header h3 {{
                     display: none !important;
+                }}
+                
+                /* Mobile Responsive Styles */
+                @media (max-width: 768px) {{
+                    .custom-smart-banner {{
+                        padding: 15px 16px !important;
+                        font-size: 16px !important;
+                        margin: 10px -15px 15px -15px !important;
+                        width: calc(100% + 30px) !important;
+                    }}
+                    
+                    .custom-smart-banner .banner-content {{
+                        flex-direction: column !important;
+                        gap: 12px;
+                    }}
+                    
+                    .custom-smart-banner .banner-icon {{
+                        font-size: 20px !important;
+                        margin-right: 8px !important;
+                    }}
+                    
+                    .custom-smart-banner .banner-text {{
+                        font-size: 16px !important;
+                    }}
+                    
+                    .custom-smart-banner .count-badge-{clean_doctype} {{
+                        font-size: 12px !important;
+                        padding: 4px 8px !important;
+                    }}
                 }}
             </style>
         `;
@@ -261,14 +292,16 @@ function addFooterTo{clean_doctype}ListView() {{
                 background: linear-gradient(90deg, #f8f9fa, #e9ecef);
                 border-top: 2px solid #2d6eaf;
                 padding: 20px 24px;
-                margin: 20px 0 0 0;
+                margin: 20px -20px 60px -20px;
+                width: calc(100% + 40px);
+                max-width: none;
                 border-radius: 8px;
                 box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
             ">
-                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
-                    <div style="display: flex; align-items: center; gap: 20px;">
-                        <img src="{config.get('logo_path', '/files/logo.png')}" alt="Company Logo" style="height: 40px; width: auto;">
-                        <div>
+                <div class="footer-content" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+                    <div class="footer-branding" style="display: flex; align-items: center; gap: 20px;">
+                        <img src="{config.get('logo_path', '/files/logo.png')}" alt="Company Logo" class="footer-logo" style="height: 40px; width: auto;">
+                        <div class="footer-company-info">
                             <div style="font-size: 14px; color: #666; font-weight: 500;">
                                 BY : {config.get('company_name', 'Your Company')}
                             </div>
@@ -277,16 +310,55 @@ function addFooterTo{clean_doctype}ListView() {{
                             </div>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 15px; align-items: center;">
-                        <button class="btn btn-sm btn-default" onclick="frappe.set_route('List', '{doctype}', {{}})">
-                            <i class="fa fa-refresh"></i> Refresh
+                    <div class="footer-actions" style="display: flex; gap: 15px; align-items: center;">
+                        <button class="btn btn-sm btn-default footer-refresh-btn" onclick="frappe.set_route('List', '{doctype}', {{}})">
+                            <i class="fa fa-refresh"></i> <span class="btn-text">Refresh</span>
                         </button>
-                        <button class="btn btn-sm btn-primary" onclick="frappe.new_doc('{doctype}')">
-                            <i class="fa fa-plus"></i> New {doctype}
+                        <button class="btn btn-sm btn-primary footer-new-btn" onclick="frappe.new_doc('{doctype}')">
+                            <i class="fa fa-plus"></i> <span class="btn-text">New {doctype}</span>
                         </button>
                     </div>
                 </div>
             </div>
+            
+            <style>
+                /* Mobile Responsive Styles for Footer */
+                @media (max-width: 768px) {{
+                    .custom-list-footer {{
+                        padding: 15px 16px !important;
+                        margin: 15px -15px 40px -15px !important;
+                        width: calc(100% + 30px) !important;
+                    }}
+                    
+                    .custom-list-footer .footer-content {{
+                        flex-direction: column !important;
+                        gap: 15px !important;
+                    }}
+                    
+                    .custom-list-footer .footer-branding {{
+                        flex-direction: column !important;
+                        text-align: center !important;
+                        gap: 10px !important;
+                    }}
+                    
+                    .custom-list-footer .footer-logo {{
+                        height: 30px !important;
+                    }}
+                    
+                    .custom-list-footer .footer-actions {{
+                        width: 100%;
+                        justify-content: center !important;
+                    }}
+                    
+                    .custom-list-footer .btn-text {{
+                        display: none;
+                    }}
+                    
+                    .custom-list-footer .btn {{
+                        padding: 4px 12px !important;
+                    }}
+                }}
+            </style>
         `;
         
         const mainSection = cur_list.$page.find('.layout-main-section');
@@ -323,10 +395,10 @@ function add{clean_doctype}BannerToForm(frm) {{
     if (!isNew) {{
         if (frm.doc.hasOwnProperty('enabled')) {{
             const enabled = frm.doc.enabled;
-            statusBadge = `<span class="badge badge-${{enabled ? 'success' : 'danger'}}" style="font-size: 14px; padding: 6px 12px;">${{enabled ? 'Active' : 'Disabled'}}</span>`;
+            statusBadge = `<span class="badge badge-${{enabled ? 'success' : 'danger'}} status-badge" style="font-size: 14px; padding: 6px 12px;">${{enabled ? 'Active' : 'Disabled'}}</span>`;
         }} else if (frm.doc.hasOwnProperty('disabled')) {{
             const enabled = !frm.doc.disabled;
-            statusBadge = `<span class="badge badge-${{enabled ? 'success' : 'danger'}}" style="font-size: 14px; padding: 6px 12px;">${{enabled ? 'Active' : 'Disabled'}}</span>`;
+            statusBadge = `<span class="badge badge-${{enabled ? 'success' : 'danger'}} status-badge" style="font-size: 14px; padding: 6px 12px;">${{enabled ? 'Active' : 'Disabled'}}</span>`;
         }}
     }}
     
@@ -338,26 +410,71 @@ function add{clean_doctype}BannerToForm(frm) {{
             font-size: 18px;
             font-weight: 600;
             border-radius: 8px;
-            margin: -5px -20px 20px -20px;
+            margin: -20px -20px 20px -20px;
+            width: calc(100% + 40px);
+            max-width: none;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             animation: slideIn 0.3s ease-out;
         ">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
-                <div style="display: flex; align-items: center;">
-                    <i class="fa {config.get('icon', 'fa-list')}" style="margin-right: 12px; font-size: 24px;"></i>
-                    <div>
-                        <div style="font-size: 20px; font-weight: 600;">
+            <div class="form-banner-content" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                <div class="form-banner-title" style="display: flex; align-items: center;">
+                    <i class="fa {config.get('icon', 'fa-list')} form-banner-icon" style="margin-right: 12px; font-size: 24px;"></i>
+                    <div class="form-banner-text">
+                        <div class="form-banner-main-text" style="font-size: 20px; font-weight: 600;">
                             ${{isNew ? 'Create New {doctype}' : itemName}}
                         </div>
-                        ${{!isNew ? '<div style="font-size: 14px; opacity: 0.9; margin-top: 2px;">{doctype} Configuration</div>' : ''}}
+                        <div class="form-banner-sub-text" style="font-size: 14px; opacity: 0.9; margin-top: 2px; ${{isNew ? 'display:none;' : ''}}">
+                            {doctype} Configuration
+                        </div>
                     </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="form-banner-actions" style="display: flex; align-items: center; gap: 10px;">
                     ${{statusBadge}}
-                    ${{!isNew ? `<button class="btn btn-light btn-sm" onclick="cur_frm.print_doc()"><i class="fa fa-print"></i> Print</button>` : ''}}
+                    ${{!isNew ? `<button class="btn btn-light btn-sm print-btn" onclick="cur_frm.print_doc()"><i class="fa fa-print"></i> <span class="print-text">Print</span></button>` : ''}}
                 </div>
             </div>
         </div>
+        
+        <style>
+            /* Mobile Responsive Styles for Form Banner */
+            @media (max-width: 768px) {{
+                .custom-form-banner {{
+                    padding: 15px 16px !important;
+                    margin: -15px -15px 15px -15px !important;
+                    width: calc(100% + 30px) !important;
+                }}
+                
+                .custom-form-banner .form-banner-content {{
+                    gap: 10px !important;
+                }}
+                
+                .custom-form-banner .form-banner-icon {{
+                    font-size: 20px !important;
+                    margin-right: 8px !important;
+                }}
+                
+                .custom-form-banner .form-banner-main-text {{
+                    font-size: 16px !important;
+                }}
+                
+                .custom-form-banner .form-banner-sub-text {{
+                    font-size: 12px !important;
+                }}
+                
+                .custom-form-banner .status-badge {{
+                    font-size: 12px !important;
+                    padding: 4px 8px !important;
+                }}
+                
+                .custom-form-banner .print-text {{
+                    display: none;
+                }}
+                
+                .custom-form-banner .print-btn {{
+                    padding: 4px 8px !important;
+                }}
+            }}
+        </style>
     `;
     
     $(frm.wrapper).find('.layout-main-section').prepend(banner);
@@ -373,14 +490,16 @@ function add{clean_doctype}FooterToForm(frm) {{
             background: linear-gradient(90deg, #f8f9fa, #e9ecef);
             border-top: 2px solid #2d6eaf;
             padding: 24px;
-            margin: 20px -20px -20px -20px;
+            margin: 20px -20px 60px -20px;
+            width: calc(100% + 40px);
+            max-width: none;
             border-radius: 0 0 8px 8px;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
         ">
-            <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 20px;">
-                    <img src="{config.get('logo_path', '/files/logo.png')}" alt="Company Logo" style="height: 45px; width: auto;">
-                    <div>
+            <div class="form-footer-content" style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center;">
+                <div class="form-footer-branding" style="display: flex; align-items: center; gap: 20px;">
+                    <img src="{config.get('logo_path', '/files/logo.png')}" alt="Company Logo" class="form-footer-logo" style="height: 45px; width: auto;">
+                    <div class="form-footer-company-info">
                         <div style="font-size: 16px; color: #2d6eaf; font-weight: 600;">
                             {config.get('company_name', 'Your Company')}
                         </div>
@@ -392,22 +511,75 @@ function add{clean_doctype}FooterToForm(frm) {{
                         </div>
                     </div>
                 </div>
-                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
-                    ${{!isNew ? `
-                        <div style="font-size: 12px; color: #666; text-align: right;">
-                            <div>Last Modified: ${{frappe.datetime.prettyDate(frm.doc.modified)}}</div>
-                            <div>By: ${{frm.doc.modified_by}}</div>
-                        </div>
-                    ` : ''}}
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-sm btn-default" onclick="frappe.set_route('List', '{doctype}')">
-                            <i class="fa fa-list"></i> Back to List
+                <div class="form-footer-actions" style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+                    <div class="form-footer-meta" style="font-size: 12px; color: #666; text-align: right; ${{isNew ? 'display:none;' : ''}}">
+                        <div>Last Modified: ${{!isNew ? frappe.datetime.prettyDate(frm.doc.modified) : ''}}</div>
+                        <div>By: ${{!isNew ? frm.doc.modified_by : ''}}</div>
+                    </div>
+                    <div class="form-footer-buttons" style="display: flex; gap: 10px;">
+                        <button class="btn btn-sm btn-default back-btn" onclick="frappe.set_route('List', '{doctype}')">
+                            <i class="fa fa-list"></i> <span class="back-text">Back to List</span>
                         </button>
-                        ${{!isNew ? `<button class="btn btn-sm btn-info" onclick="frappe.new_doc('{doctype}')"><i class="fa fa-plus"></i> New {doctype}</button>` : ''}}
+                        ${{!isNew ? `<button class="btn btn-sm btn-info new-btn" onclick="frappe.new_doc('{doctype}')"><i class="fa fa-plus"></i> <span class="new-text">New {doctype}</span></button>` : ''}}
                     </div>
                 </div>
             </div>
         </div>
+        
+        <style>
+            /* Mobile Responsive Styles for Form Footer */
+            @media (max-width: 768px) {{
+                .custom-form-footer {{
+                    padding: 16px !important;
+                    margin: 15px -15px 40px -15px !important;
+                    width: calc(100% + 30px) !important;
+                }}
+                
+                .custom-form-footer .form-footer-content {{
+                    grid-template-columns: 1fr !important;
+                    gap: 15px !important;
+                }}
+                
+                .custom-form-footer .form-footer-branding {{
+                    flex-direction: column !important;
+                    text-align: center !important;
+                    gap: 10px !important;
+                }}
+                
+                .custom-form-footer .form-footer-logo {{
+                    height: 35px !important;
+                }}
+                
+                .custom-form-footer .form-footer-company-info {{
+                    text-align: center !important;
+                }}
+                
+                .custom-form-footer .form-footer-company-info > div:first-child {{
+                    font-size: 14px !important;
+                }}
+                
+                .custom-form-footer .form-footer-actions {{
+                    align-items: center !important;
+                }}
+                
+                .custom-form-footer .form-footer-meta {{
+                    display: none !important;
+                }}
+                
+                .custom-form-footer .form-footer-buttons {{
+                    justify-content: center !important;
+                }}
+                
+                .custom-form-footer .back-text,
+                .custom-form-footer .new-text {{
+                    display: none;
+                }}
+                
+                .custom-form-footer .btn {{
+                    padding: 4px 12px !important;
+                }}
+            }}
+        </style>
     `;
     
     $(frm.wrapper).find('.layout-main-section').append(footer);
