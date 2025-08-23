@@ -7,7 +7,6 @@
 
 <div align="center">
 	<a target="_blank" href="LICENSE" title="License: MIT"><img src="https://img.shields.io/badge/License-MIT-success.svg"></a>
-	<a href="https://codecov.io/gh/frappe/frappe"><img src="https://codecov.io/gh/frappe/frappe/branch/develop/graph/badge.svg?token=XoTa679hIj"/></a>
 </div>
 <div align="center">
 	<img src=".github/hero-image.png" alt="Hero Image" />
