@@ -1,6 +1,6 @@
 <div align="center" markdown="1">
 	<img src=".github/framework-logo-new.svg" width="80" height="80"/>
-	<h1>Frappe Framework</h1>
+	<h1>Forty Framework</h1>
 
  **Low Code Web Framework For Real World Applications, In Python And JavaScript**
 </div>
